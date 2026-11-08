@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
+import { authorizeRequest, escapeHtml as esc, isValidEmail } from "../_shared/security.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -35,21 +36,40 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const body: NotificationRequest = await req.json();
-    const { type } = body;
-
-    console.log("Received notification request:", body);
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Antes cualquiera con la clave pública podía enviar correos a cualquier dirección
+    const auth = await authorizeRequest(req.headers.get("Authorization"), {
+      getUserId: async (jwt) => (await supabase.auth.getUser(jwt)).data.user?.id ?? null,
+      isAdmin: async (id) => Boolean((await supabase.rpc("is_admin", { _user_id: id })).data),
+    });
+    if (!auth.ok) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: auth.status,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const body: NotificationRequest = await req.json();
+    const { type } = body;
+
+    if (body.recipientEmail !== undefined && !isValidEmail(body.recipientEmail)) {
+      return new Response(JSON.stringify({ error: "Correo de destino inválido" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("Received notification request:", { type, by: auth.userId });
 
     let emailSubject = "";
     let emailHtml = "";
 
     // ── NEW DUES GENERATED ──
     if (type === "new_dues_generated" && body.recipientEmail) {
-      emailSubject = `💰 Nueva alícuota generada - ${body.month}/${body.year}`;
+      emailSubject = `💰 Nueva alícuota generada - ${esc(body.month)}/${esc(body.year)}`;
       emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -70,11 +90,11 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 10px 0 0 0; opacity: 0.9;">Nueva Alícuota</p>
               </div>
               <div class="content">
-                <p>Hola ${body.recipientName || "Residente"},</p>
-                <p>Se ha generado una nueva alícuota para el período <strong>${body.month}/${body.year}</strong>.</p>
+                <p>Hola ${esc(body.recipientName || "Residente")},</p>
+                <p>Se ha generado una nueva alícuota para el período <strong>${esc(body.month)}/${esc(body.year)}</strong>.</p>
                 <div class="amount-box">
                   <p style="font-size: 14px; color: #6b7280; margin: 0;">Monto a pagar</p>
-                  <p style="font-size: 32px; font-weight: bold; color: #1e3a5f; margin: 10px 0;">$${body.amount}</p>
+                  <p style="font-size: 32px; font-weight: bold; color: #1e3a5f; margin: 10px 0;">$${esc(body.amount)}</p>
                 </div>
                 <p>Ingresa a tu cuenta para ver más detalles y gestionar tu pago.</p>
                 <div class="footer">
@@ -105,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
       const directionLabel = body.accessDirection === "entry" ? "Entrada" : "Salida";
       const emoji = body.accessDirection === "entry" ? "🟢" : "🔴";
       
-      emailSubject = `${emoji} Acceso registrado: ${directionLabel} - ${body.accessPersonName}`;
+      emailSubject = `${emoji} Acceso registrado: ${directionLabel} - ${esc(body.accessPersonName)}`;
       emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -126,13 +146,13 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 10px 0 0 0; opacity: 0.9;">Registro de Acceso</p>
               </div>
               <div class="content">
-                <p>Hola ${body.recipientName || "Residente"},</p>
+                <p>Hola ${esc(body.recipientName || "Residente")},</p>
                 <p>Se ha registrado un acceso en tu residencia:</p>
                 <div class="access-box">
-                  <p><strong>Persona:</strong> ${body.accessPersonName}</p>
+                  <p><strong>Persona:</strong> ${esc(body.accessPersonName)}</p>
                   <p><strong>Tipo:</strong> ${body.accessType === "visitor" ? "Visitante" : "Residente"}</p>
                   <p><strong>Dirección:</strong> ${directionLabel}</p>
-                  <p><strong>Fecha/Hora:</strong> ${new Date().toLocaleString("es-ES", { timeZone: "America/Caracas" })}</p>
+                  <p><strong>Fecha/Hora:</strong> ${new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" })}</p>
                 </div>
                 <div class="footer">
                   <p>Este es un mensaje automático de Gestor Residencial Gissel's 2.</p>
@@ -172,7 +192,7 @@ const handler = async (req: Request): Promise<Response> => {
       const statusText = isApproved ? "APROBADA" : "RECHAZADA";
       const emoji = isApproved ? "✅" : "❌";
 
-      emailSubject = `${emoji} Reservación ${statusText}: ${reservation.resources?.name || "Recurso"}`;
+      emailSubject = `${emoji} Reservación ${statusText}: ${esc(reservation.resources?.name || "Recurso")}`;
       emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -195,21 +215,21 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 10px 0 0 0; opacity: 0.9;">Actualización de Reservación</p>
               </div>
               <div class="content">
-                <p>Hola ${body.recipientName || "Residente"},</p>
+                <p>Hola ${esc(body.recipientName || "Residente")},</p>
                 <p>Tu solicitud de reservación ha sido <strong>${body.action === "approved" ? "aprobada" : "rechazada"}</strong>.</p>
                 
                 <div class="reservation-details">
-                  <h3 style="margin-top: 0;">${reservation.resources?.name || "Recurso"}</h3>
-                  <p><strong>Fecha:</strong> ${new Date(reservation.start_time).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                  <p><strong>Hora:</strong> ${new Date(reservation.start_time).toLocaleTimeString('es-ES', { hour: 'numeric', minute: '2-digit' })} - ${new Date(reservation.end_time).toLocaleTimeString('es-ES', { hour: 'numeric', minute: '2-digit' })}</p>
+                  <h3 style="margin-top: 0;">${esc(reservation.resources?.name || "Recurso")}</h3>
+                  <p><strong>Fecha:</strong> ${new Date(reservation.start_time).toLocaleDateString('es-EC', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  <p><strong>Hora:</strong> ${new Date(reservation.start_time).toLocaleTimeString('es-EC', { hour: 'numeric', minute: '2-digit' })} - ${new Date(reservation.end_time).toLocaleTimeString('es-EC', { hour: 'numeric', minute: '2-digit' })}</p>
                   <p><strong>Estado:</strong> <span class="status-badge" style="background-color: ${statusColor};">${statusText}</span></p>
-                  ${reservation.notes ? `<p><strong>Notas:</strong> ${reservation.notes}</p>` : ""}
+                  ${reservation.notes ? `<p><strong>Notas:</strong> ${esc(reservation.notes)}</p>` : ""}
                 </div>
                 
                 ${!isApproved && body.reason ? `
                   <div class="reason-box">
                     <p style="margin: 0; font-weight: 600; color: #991b1b;">Razón del rechazo:</p>
-                    <p style="margin: 10px 0 0 0; color: #7f1d1d;">${body.reason}</p>
+                    <p style="margin: 10px 0 0 0; color: #7f1d1d;">${esc(body.reason)}</p>
                   </div>
                 ` : ""}
                 
@@ -249,7 +269,7 @@ const handler = async (req: Request): Promise<Response> => {
         open: "#f59e0b", in_progress: "#3b82f6", resolved: "#10b981", closed: "#6b7280",
       };
 
-      emailSubject = `📋 Actualización de ticket: ${ticket.subject}`;
+      emailSubject = `📋 Actualización de ticket: ${esc(ticket.subject)}`;
       emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -271,13 +291,13 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 10px 0 0 0; opacity: 0.9;">Actualización de Ticket</p>
               </div>
               <div class="content">
-                <p>Hola ${body.recipientName || "Residente"},</p>
+                <p>Hola ${esc(body.recipientName || "Residente")},</p>
                 <p>Tu ticket de soporte ha sido actualizado:</p>
                 <div class="ticket-details">
-                  <h3 style="margin-top: 0;">${ticket.subject}</h3>
-                  <p><strong>Categoría:</strong> ${ticket.category}</p>
+                  <h3 style="margin-top: 0;">${esc(ticket.subject)}</h3>
+                  <p><strong>Categoría:</strong> ${esc(ticket.category)}</p>
                   <p><strong>Nuevo Estado:</strong> <span class="status-badge" style="background-color: ${statusColors[ticket.status] || "#6b7280"};">${ticket.status.replace("_", " ").toUpperCase()}</span></p>
-                  ${ticket.admin_notes ? `<p><strong>Notas del admin:</strong> ${ticket.admin_notes}</p>` : ""}
+                  ${ticket.admin_notes ? `<p><strong>Notas del admin:</strong> ${esc(ticket.admin_notes)}</p>` : ""}
                 </div>
                 <p style="margin-top: 20px;">Ingresa a tu cuenta para ver más detalles.</p>
                 <div class="footer">
@@ -310,7 +330,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: profiles } = await supabase.from("profiles").select("email, full_name");
 
-      emailSubject = `📢 Nuevo anuncio: ${news.title}`;
+      emailSubject = `📢 Nuevo anuncio: ${esc(news.title)}`;
       
       const emailPromises = (profiles || []).map(async (profile) => {
         const html = `
@@ -333,10 +353,10 @@ const handler = async (req: Request): Promise<Response> => {
                   <p style="margin: 10px 0 0 0; opacity: 0.9;">Nuevo Anuncio</p>
                 </div>
                 <div class="content">
-                  <p>Hola ${profile.full_name || "Residente"},</p>
+                  <p>Hola ${esc(profile.full_name || "Residente")},</p>
                   <div class="announcement">
-                    <h2 style="margin-top: 0; color: #1e3a5f;">${news.title}</h2>
-                    <p>${news.content.substring(0, 300)}${news.content.length > 300 ? "..." : ""}</p>
+                    <h2 style="margin-top: 0; color: #1e3a5f;">${esc(news.title)}</h2>
+                    <p>${esc(news.content.substring(0, 300))}${news.content.length > 300 ? "..." : ""}</p>
                   </div>
                   <p style="margin-top: 20px;">Ingresa a tu cuenta para leer el anuncio completo.</p>
                   <div class="footer"><p>Este es un mensaje automático de Gestor Residencial Gissel's 2.</p></div>
@@ -361,10 +381,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     throw new Error("Tipo de notificación inválido o faltan parámetros");
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in send-notification function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Error inesperado" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

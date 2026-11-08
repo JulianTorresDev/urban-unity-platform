@@ -28,20 +28,37 @@ Módulos complementarios: control de acceso QR, chat comunitario, notificaciones
 ## Configuración
 
 1. Instalar dependencias: `npm install`
-2. Variables de entorno en `.env` (proyecto Supabase `blddnbsorzxxdprkekjm`):
+2. Variables de entorno en `.env` (proyecto Supabase `isdhzlughnyqhobzwarl`):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_PUBLISHABLE_KEY`
 3. Levantar en desarrollo: `npm run dev`
 
 ### Base de datos
 
-El esquema completo está en `supabase/migrations/` y ya se encuentra aplicado al proyecto activo
-(tablas, políticas RLS, triggers, buckets `chat_images` y `payment_proofs`, realtime).
+Todo el esquema está en una sola migración, `supabase/migrations/20261107120000_esquema_inicial.sql`
+(tablas, políticas RLS, triggers, buckets `receipts`, `chat_images` y `logos`, realtime), y los datos
+iniciales en `supabase/seed.sql`. Para crear la base desde cero en el proyecto vinculado:
+
+```bash
+npx supabase db reset --linked --sql-paths seed.sql
+```
+
+`npm run test:real` comprueba las reglas de seguridad contra la base real sin dejar datos.
+Las migraciones antiguas están archivadas en `supabase/migrations_legacy/`.
 
 ### Usuarios
 
-Los usuarios se crean desde **Administración → Usuarios** o con `node scripts/seed_users.mjs`.
-Todo usuario nuevo recibe el rol `resident`; los roles `admin`/`super_admin` se asignan en la tabla `user_roles`.
+El registro público está desactivado. Las cuentas se crean de dos formas:
+
+- Desde **Administración → Residentes**, que llama a la Edge Function `create-resident` (solo administración).
+- Las iniciales, con `scripts/seed-users.local.json` (copia de `seed-users.example.json`, ignorado por git):
+
+```bash
+node --env-file=.env scripts/seed_users.mjs
+```
+
+El script usa la API de administración (pide la clave de servicio a la CLI de Supabase, sin guardarla) y
+asigna a cada cuenta el rol indicado: `super_admin`, `admin` o `resident`.
 
 ## Seguridad (ISO/IEC 25010 — RNF-01)
 

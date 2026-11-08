@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-
-type AppRole = 'super_admin' | 'admin' | 'resident';
+import { highestRole, isAdminRole, type AppRole } from '@/lib/roles';
 
 interface AuthContextType {
   user: User | null;
@@ -24,47 +23,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Con varias filas de rol, .single() fallaba y la persona quedaba como residente
   const fetchUserRole = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .single();
-    
-    if (!error && data) {
-      setRole(data.role as AppRole);
+      .eq('user_id', userId);
+    setRole(highestRole((data ?? []).map((r) => r.role)));
+  };
+
+  // La sesión no se da por cargada hasta conocer el rol: evita que las rutas de
+  // administración redirijan a /dashboard mientras el rol todavía es null.
+  const applySession = async (next: Session | null) => {
+    setSession(next);
+    setUser(next?.user ?? null);
+    if (next?.user) {
+      await fetchUserRole(next.user.id);
     } else {
-      setRole('resident');
+      setRole(null);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
-          }, 0);
-        } else {
-          setRole(null);
-        }
-        setLoading(false);
+      (_event, session) => {
+        // Diferido: supabase-js no permite consultas dentro del propio callback
+        setTimeout(() => {
+          applySession(session);
+        }, 0);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-      }
-      setLoading(false);
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
 
     return () => subscription.unsubscribe();
   }, []);
@@ -94,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
   };
 
-  const isAdmin = role === 'admin' || role === 'super_admin';
+  const isAdmin = isAdminRole(role);
   const isSuperAdmin = role === 'super_admin';
 
   return (

@@ -84,21 +84,29 @@ export function useNotifications() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
+  // Se actualiza la lista local al instante; antes dependía del evento en tiempo real
+  // y el contador quedaba desfasado si Realtime no llegaba.
   const markAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) fetchNotifications();
   };
 
   const markAllAsRead = async () => {
     if (!user) return;
-    await supabase
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    const { error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', user.id)
       .eq('is_read', false);
+    if (error) fetchNotifications();
   };
 
   const deleteNotification = async (id: string) => {
-    await supabase.from('notifications').delete().eq('id', id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    const { error } = await supabase.from('notifications').delete().eq('id', id);
+    if (error) fetchNotifications();
   };
 
   return { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification };

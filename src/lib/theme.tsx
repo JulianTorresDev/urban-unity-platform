@@ -12,13 +12,14 @@ interface ThemeContextType {
   settings: ThemeSettings;
   loading: boolean;
   updateSettings: (newSettings: Partial<ThemeSettings>) => Promise<void>;
+  previewTheme: (preview: Partial<ThemeSettings>) => void;
   refreshSettings: () => Promise<void>;
 }
 
 const defaultSettings: ThemeSettings = {
   company_name: "Gestor Residencial — Gissel's 2",
   logo_url: null,
-  primary_color: '#1168bd',
+  primary_color: '#0071e3',
   secondary_color: '#1e293b',
 };
 
@@ -26,10 +27,10 @@ const STORAGE_KEY = 'gissels2_theme_settings';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function hexToHsl(hex: string): string {
-  if (!hex || !hex.startsWith('#')) return '215 85% 40%';
+export function hexToHsl(hex: string): string {
+  if (!hex || !hex.startsWith('#')) return '211 100% 45%';
   const cleanHex = hex.replace('#', '');
-  if (cleanHex.length !== 6) return '215 85% 40%';
+  if (cleanHex.length !== 6) return '211 100% 45%';
   
   const r = parseInt(cleanHex.slice(0, 2), 16) / 255;
   const g = parseInt(cleanHex.slice(2, 4), 16) / 255;
@@ -91,12 +92,29 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const previewTheme = (preview: Partial<ThemeSettings>) => {
+    const combined = { ...settings, ...preview };
+    setSettings(combined);
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      if (combined.primary_color) {
+        const hslPrimary = hexToHsl(combined.primary_color);
+        root.style.setProperty('--primary', hslPrimary);
+        root.style.setProperty('--sidebar-primary', hslPrimary);
+        root.style.setProperty('--ring', hslPrimary);
+      }
+      if (combined.company_name) {
+        document.title = `${combined.company_name} · Gestión Residencial`;
+      }
+    }
+  };
+
   const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
         .from('system_settings')
         .select('*')
-        .maybeSingle();
+        .limit(1);
 
       if (error) {
         console.warn('System settings query notice:', error.message);
@@ -104,12 +122,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (data) {
+      const settingsRow = data && data.length > 0 ? data[0] : null;
+      if (settingsRow) {
         const themeData: ThemeSettings = {
-          company_name: data.company_name || defaultSettings.company_name,
-          logo_url: data.logo_url || null,
-          primary_color: data.primary_color || defaultSettings.primary_color,
-          secondary_color: data.secondary_color || defaultSettings.secondary_color,
+          company_name: settingsRow.company_name || defaultSettings.company_name,
+          logo_url: settingsRow.logo_url || null,
+          primary_color: settingsRow.primary_color || defaultSettings.primary_color,
+          secondary_color: settingsRow.secondary_color || defaultSettings.secondary_color,
         };
         setSettings(themeData);
         applyTheme(themeData);
@@ -134,7 +153,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         { event: '*', schema: 'public', table: 'system_settings' },
         (payload) => {
           if (payload.new && typeof payload.new === 'object') {
-            const row = payload.new as Record<string, any>;
+            const row = payload.new as Partial<ThemeSettings>;
             const updated: ThemeSettings = {
               company_name: row.company_name || defaultSettings.company_name,
               logo_url: row.logo_url || null,
@@ -154,10 +173,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateSettings = async (newSettings: Partial<ThemeSettings>) => {
-    const { data: current } = await supabase
+    // Buscar si existe registro actual
+    const { data: rows } = await supabase
       .from('system_settings')
       .select('id')
-      .maybeSingle();
+      .limit(1);
+
+    const current = rows && rows.length > 0 ? rows[0] : null;
 
     let error;
 
@@ -201,7 +223,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ settings, loading, updateSettings, refreshSettings: fetchSettings }}>
+    <ThemeContext.Provider value={{ settings, loading, updateSettings, previewTheme, refreshSettings: fetchSettings }}>
       {children}
     </ThemeContext.Provider>
   );

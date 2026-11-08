@@ -1,0 +1,5 @@
+[
+  { "email": "tu-correo@ejemplo.com", "password": "cambia-esta-contraseña", "full_name": "Tu nombre", "role": "super_admin" },
+  { "email": "administracion@ejemplo.com", "password": "cambia-esta-contraseña", "full_name": "Administración General", "role": "admin" },
+  { "email": "residente@ejemplo.com", "password": "cambia-esta-contraseña", "full_name": "Residente de prueba", "role": "resident", "apartment": "12-A" }
+]

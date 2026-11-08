@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,11 +11,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AvailabilityCalendar } from '@/components/reservations/AvailabilityCalendar';
-import { CalendarDays, Plus, Loader2, TreesIcon, Building, Car, X, DollarSign, Clock, User, ArrowRight, CheckCircle, Info } from 'lucide-react';
+import { 
+  CalendarDays, 
+  Plus, 
+  Loader2, 
+  TreesIcon, 
+  Building, 
+  Car, 
+  X, 
+  DollarSign, 
+  Clock, 
+  User, 
+  ArrowRight, 
+  CheckCircle, 
+  Info, 
+  ShieldCheck, 
+  AlertCircle,
+  HelpCircle,
+  PhoneCall
+} from 'lucide-react';
 import { format, addHours, setHours, setMinutes, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatUSD } from '@/lib/format';
 
 interface Resource {
   id: string;
@@ -42,10 +62,10 @@ interface Reservation {
   };
 }
 
-const resourceIcons: Record<string, any> = {
-  'Zonas Verdes': { icon: TreesIcon, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  'Salón Social': { icon: Building, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  'Parqueadero Visitantes': { icon: Car, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+const resourceIcons: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label?: string }> = {
+  'Zonas Verdes': { icon: TreesIcon, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  'Salón Social': { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
+  'Parqueadero Visitantes': { icon: Car, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
 };
 
 const Reservations = () => {
@@ -78,126 +98,107 @@ const Reservations = () => {
   const fetchData = async () => {
     if (!user) return;
 
-    const [resourcesRes, myReservationsRes, allReservationsRes] = await Promise.all([
-      supabase.from('resources').select('*'),
-      supabase
-        .from('reservations')
-        .select('*, resources(*)')
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'confirmed'])
-        .gte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: true }),
-      supabase
-        .from('reservations')
-        .select('*, resources(*)')
-        .in('status', ['pending', 'confirmed'])
-        .gte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: true }),
-    ]);
+    try {
+      const [resourcesRes, myReservationsRes, allReservationsRes] = await Promise.all([
+        supabase.from('resources').select('*'),
+        supabase
+          .from('reservations')
+          .select('*, resources(*)')
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'confirmed'])
+          .gte('start_time', new Date().toISOString())
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('reservations')
+          .select('*, resources(*)')
+          .in('status', ['pending', 'confirmed'])
+          .gte('start_time', new Date().toISOString())
+          .order('start_time', { ascending: true }),
+      ]);
 
-    if (resourcesRes.data) setResources(resourcesRes.data);
-    if (myReservationsRes.data) setReservations(myReservationsRes.data as unknown as Reservation[]);
-    
-    if (allReservationsRes.data) {
-      const userIds = [...new Set(allReservationsRes.data.map(r => r.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, apartment_number')
-        .in('id', userIds);
-      
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      const reservationsWithProfiles = allReservationsRes.data.map(r => ({
-        ...r,
-        profiles: profileMap.get(r.user_id) || null
-      }));
-      setAllReservations(reservationsWithProfiles as unknown as Reservation[]);
+      if (resourcesRes.data) {
+        setResources(resourcesRes.data);
+        if (!selectedResource && resourcesRes.data.length > 0) {
+          setSelectedResource(resourcesRes.data[0].id);
+        }
+      }
+      if (myReservationsRes.data) setReservations(myReservationsRes.data as unknown as Reservation[]);
+      if (allReservationsRes.data) setAllReservations(allReservationsRes.data as unknown as Reservation[]);
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al cargar la información');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-
-    const channel = supabase
-      .channel('reservations-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reservations'
-        },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [user]);
-
-  const checkAvailability = async (resourceId: string, startTime: Date, endTime: Date) => {
-    const { data, error } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('resource_id', resourceId)
-      .eq('status', 'confirmed')
-      .or(`and(start_time.lt.${endTime.toISOString()},end_time.gt.${startTime.toISOString()})`);
-
-    return !error && (!data || data.length === 0);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedDate || !selectedResource || !selectedStartTime) {
-      toast.error('Por favor completa todos los campos requeridos');
-      return;
-    }
-
-    const startTime = setMinutes(setHours(selectedDate, parseInt(selectedStartTime)), 0);
-    const endTime = addHours(startTime, parseInt(selectedDuration));
-
-    if (isBefore(startTime, new Date())) {
-      toast.error('No puedes reservar una hora en el pasado');
+    if (!selectedResource || !selectedDate || !selectedStartTime) {
+      toast.error('Por favor selecciona el área, el día y la hora de inicio');
       return;
     }
 
     setIsSubmitting(true);
+    try {
+      const startHour = parseInt(selectedStartTime);
+      const duration = parseInt(selectedDuration);
+      
+      const startTime = setMinutes(setHours(selectedDate, startHour), 0);
+      const endTime = addHours(startTime, duration);
 
-    const isAvailable = await checkAvailability(selectedResource, startTime, endTime);
-    if (!isAvailable) {
-      toast.error('Este horario ya está reservado. Por favor elige otro.');
+      if (isBefore(startTime, new Date())) {
+        toast.error('No puedes reservar en un horario anterior a la hora actual');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check conflict
+      const { data: conflicts } = await supabase
+        .from('reservations')
+        .select('id')
+        .eq('resource_id', selectedResource)
+        .in('status', ['pending', 'confirmed'])
+        .lt('start_time', endTime.toISOString())
+        .gt('end_time', startTime.toISOString());
+
+      if (conflicts && conflicts.length > 0) {
+        toast.error('Este espacio ya se encuentra reservado en ese horario');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { error } = await supabase.from('reservations').insert({
+        user_id: user?.id,
+        resource_id: selectedResource,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        notes: notes || null,
+        price: estimatedPrice,
+        status: 'pending'
+      });
+
+      if (error) {
+        toast.error('Error al registrar reserva: ' + error.message);
+      } else {
+        toast.success('Reserva solicitada. La administración la confirmará pronto.');
+        setIsDialogOpen(false);
+        resetForm();
+        fetchData();
+      }
+    } catch {
+      toast.error('Ocurrió un error inesperado al reservar');
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    const { error } = await supabase.from('reservations').insert({
-      resource_id: selectedResource,
-      user_id: user?.id,
-      start_time: startTime.toISOString(),
-      end_time: endTime.toISOString(),
-      status: 'pending',
-      notes: notes || null,
-      price: estimatedPrice,
-    });
-
-    if (error) {
-      toast.error('Error al crear la reserva');
-    } else {
-      toast.success('Reserva enviada para aprobación');
-      fetchData();
-      setIsDialogOpen(false);
-      resetForm();
-    }
-
-    setIsSubmitting(false);
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return;
+    if (!confirm('¿Confirmas que deseas cancelar esta reserva?')) return;
 
     const { error } = await supabase
       .from('reservations')
@@ -205,29 +206,23 @@ const Reservations = () => {
       .eq('id', id);
 
     if (error) {
-      toast.error('Error al cancelar reserva');
+      toast.error('Error al cancelar la reserva');
     } else {
-      toast.success('Reserva cancelada');
+      toast.success('Reserva cancelada correctamente');
       fetchData();
     }
   };
 
   const resetForm = () => {
     setSelectedDate(undefined);
-    setSelectedResource('');
     setSelectedStartTime('');
     setSelectedDuration('2');
     setNotes('');
   };
 
-  const handleSlotSelect = (date: Date, hour: number) => {
-    setSelectedDate(date);
-    setSelectedStartTime(hour.toString());
-  };
-
   const formatPrice = (price: number | null) => {
-    if (price === null || price === 0) return 'Gratis';
-    return `$${price.toFixed(2)}`;
+    if (price === null || price === 0) return 'Gratuito';
+    return formatUSD(price);
   };
 
   const getStatusBadge = (status: string) => {
@@ -235,11 +230,11 @@ const Reservations = () => {
       case 'confirmed':
         return <StatusBadge status="success">Confirmada</StatusBadge>;
       case 'pending':
-        return <StatusBadge status="warning">Pendiente</StatusBadge>;
+        return <StatusBadge status="warning">En revisión</StatusBadge>;
+      case 'cancelled':
+        return <StatusBadge status="destructive">Cancelada</StatusBadge>;
       case 'rejected':
         return <StatusBadge status="destructive">Rechazada</StatusBadge>;
-      case 'cancelled':
-        return <StatusBadge status="muted">Cancelada</StatusBadge>;
       default:
         return <StatusBadge status="muted">{status}</StatusBadge>;
     }
@@ -247,103 +242,133 @@ const Reservations = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-10 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="space-y-8 max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-4xl font-black flex items-center gap-4 text-foreground tracking-tight">
-              <div className="p-3 bg-primary/10 rounded-2xl">
-                <CalendarDays className="w-8 h-8 text-primary" />
-              </div>
-              Reservas de Áreas Comunes
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[13px] font-medium text-primary">
+                Comunidad
+              </span>
+            </div>
+            <h1 className="text-[28px] sm:text-[32px] leading-tight font-semibold text-foreground tracking-tight">
+              Reservas
             </h1>
-            <p className="text-muted-foreground mt-2 text-lg font-medium">
-              Agenda los espacios exclusivos de tu conjunto residencial
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base font-medium">
+              Reserva el salón social y otras áreas comunes, sin cruces de horario.
             </p>
           </div>
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="lg" className="gap-2 rounded-2xl px-8 shadow-xl shadow-primary/20 h-14 font-black">
+              <Button 
+                size="lg" 
+                className="h-12 px-6 text-[15px] flex-shrink-0"
+              >
                 <Plus className="w-5 h-5" />
-                NUEVA RESERVA
+                Nueva reserva
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl rounded-3xl border-none shadow-2xl bg-card/95 backdrop-blur-xl max-h-[90vh] overflow-y-auto scrollbar-custom">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-black">Hacer una Reserva</DialogTitle>
-                <DialogDescription className="font-medium">
-                  Selecciona el área, la fecha y el horario de tu preferencia.
+
+            <DialogContent className="sm:max-w-2xl rounded-2xl bg-card p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="border-b border-border/70 pb-4">
+                <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                  <CalendarDays className="w-4 h-4" />
+                  <span>Paso 1 de 2 · Elige el área</span>
+                </div>
+                <DialogTitle className="text-2xl font-semibold text-foreground mt-1">
+                  Solicitar reserva de espacio
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground text-sm font-medium">
+                  Elige el área común, la fecha deseada en el calendario y el horario disponible.
                 </DialogDescription>
               </DialogHeader>
+
               <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                {/* Step 1: Resource Selector */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Selecciona el Área</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {resources.map((resource) => {
-                      const config = resourceIcons[resource.name] || { icon: Building, color: 'text-slate-500', bg: 'bg-slate-500/10' };
-                      const Icon = config.icon;
-                      const isSelected = selectedResource === resource.id;
-                      
-                      return (
-                        <div 
-                          key={resource.id}
-                          onClick={() => setSelectedResource(resource.id)}
-                          className={`
-                            p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2
-                            ${isSelected ? 'border-primary bg-primary/5 shadow-md scale-105' : 'border-transparent bg-muted/40 hover:bg-muted/60'}
-                          `}
-                        >
-                          <div className={`p-3 rounded-xl ${isSelected ? 'bg-primary text-primary-foreground' : `${config.bg} ${config.color}`}`}>
-                            <Icon className="w-6 h-6" />
+                  <Label htmlFor="reservations-1-selecciona-el-area-comun" className="text-xs font-semibold text-foreground">
+                    1. Selecciona el Área Común
+                  </Label>
+                  <Select value={selectedResource} onValueChange={(val) => {
+                    setSelectedResource(val);
+                    setSelectedDate(undefined);
+                    setSelectedStartTime('');
+                  }}>
+                    <SelectTrigger id="reservations-1-selecciona-el-area-comun" className="h-12">
+                      <SelectValue placeholder="Elige un área común..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-border bg-card shadow-lg">
+                      {resources.map((r) => (
+                        <SelectItem key={r.id} value={r.id} className="py-3 font-semibold cursor-pointer">
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <span>{r.name}</span>
+                            <span className="text-xs text-muted-foreground font-medium">
+                              {r.base_price ? formatPrice(r.base_price) : 'Sin costo base'}
+                            </span>
                           </div>
-                          <p className="text-xs font-black leading-tight">{resource.name}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
+                {/* Step 2: Calendar & Slot picker */}
                 {selectedResource && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Verificar Disponibilidad</Label>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                      <span>2. Elige fecha y hora de inicio</span>
+                      {selectedResourceData && (
+                        <span className="text-muted-foreground font-semibold">
+                          Máximo {selectedResourceData.max_hours_per_booking || 4} horas seguidas
+                        </span>
+                      )}
+                    </Label>
+
                     <AvailabilityCalendar
                       resourceId={selectedResource}
                       resourceName={selectedResourceData?.name || ''}
-                      onSelectSlot={handleSlotSelect}
                       selectedDate={selectedDate}
                       selectedHour={selectedStartTime ? parseInt(selectedStartTime) : undefined}
+                      onSelectSlot={(date, hour) => {
+                        setSelectedDate(date);
+                        setSelectedStartTime(hour.toString());
+                      }}
                     />
-                    
-                    <AnimatePresence>
-                      {selectedDate && selectedStartTime && (
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-4"
-                        >
-                          <div className="p-3 bg-emerald-500 rounded-xl text-white">
-                            <CheckCircle className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Horario Seleccionado</p>
-                            <p className="text-sm font-bold text-emerald-900">
-                              {format(selectedDate, 'EEEE, d MMMM', { locale: es })} a las {format(setHours(new Date(), parseInt(selectedStartTime)), 'h:00 a')}
-                            </p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
+
+                    {selectedDate && selectedStartTime && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex items-center gap-3"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center text-white flex-shrink-0">
+                          <CheckCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                            Horario seleccionado
+                          </p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {format(selectedDate, "EEEE d 'de' MMMM, yyyy", { locale: es })} a las {format(setHours(new Date(), parseInt(selectedStartTime)), 'h:00 a')}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Step 3: Duration & Price Calculation */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Duración (Horas)</Label>
+                    <Label htmlFor="reservations-3-duracion-del-evento" className="text-xs font-semibold text-foreground">
+                      3. Duración del Evento
+                    </Label>
                     <Select value={selectedDuration} onValueChange={setSelectedDuration}>
-                      <SelectTrigger className="h-14 bg-muted/50 border-none rounded-2xl">
-                        <SelectValue placeholder="Selecciona duración" />
+                      <SelectTrigger id="reservations-3-duracion-del-evento" className="h-12">
+                        <SelectValue placeholder="Duración" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-none shadow-xl">
+                      <SelectContent className="rounded-xl border border-border bg-card">
                         <SelectItem value="1">1 hora</SelectItem>
                         <SelectItem value="2">2 horas</SelectItem>
                         <SelectItem value="3">3 horas</SelectItem>
@@ -353,34 +378,55 @@ const Reservations = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Inversión Estimada</Label>
-                    <div className="h-14 bg-primary/5 border border-primary/20 rounded-2xl flex items-center px-5 justify-between">
-                      <DollarSign className="w-5 h-5 text-primary" />
-                      <span className="text-xl font-black text-primary">{formatPrice(estimatedPrice)}</span>
+                    <Label className="text-xs font-semibold text-foreground">
+                      Costo estimado
+                    </Label>
+                    <div className="h-14 px-4 rounded-xl border border-primary/30 bg-primary/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                        <DollarSign className="w-4 h-4" />
+                        Total
+                      </div>
+                      <span className="text-lg font-semibold text-foreground">{formatPrice(estimatedPrice)}</span>
                     </div>
                   </div>
                 </div>
 
+                {/* Step 4: Notes */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Notas adicionales</Label>
-                  <Textarea
+                  <Label htmlFor="reservations-detalles-o-motivo-de-la-reserva-" className="text-xs font-semibold text-foreground">
+                    Detalles o motivo de la reserva (Opcional)
+                  </Label>
+                  <Textarea id="reservations-detalles-o-motivo-de-la-reserva-"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Ej: Invitados externos, uso de sonido, etc."
+                    placeholder="Ej: Cumpleaños familiar, número estimado de invitados, uso de equipo de sonido..."
                     rows={2}
-                    className="bg-muted/50 border-none rounded-2xl focus:ring-primary/20 font-medium resize-none"
+                    className="border border-border/80 rounded-xl bg-background font-medium resize-none min-h-[70px]"
                   />
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl h-12 font-bold">
+                {/* Dialog Actions */}
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-border/70">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)} 
+                    className="w-full sm:w-auto h-12 rounded-xl font-semibold border"
+                  >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isSubmitting || !selectedDate} className="rounded-xl h-12 px-10 font-black shadow-lg shadow-primary/20">
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting || !selectedDate || !selectedStartTime} 
+                    className="w-full sm:w-auto h-12 px-8 rounded-xl font-semibold shadow-sm gap-2"
+                  >
                     {isSubmitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Enviando...
+                      </>
                     ) : (
-                      'RESERVAR AHORA'
+                      'Enviar solicitud'
                     )}
                   </Button>
                 </div>
@@ -389,147 +435,239 @@ const Reservations = () => {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* My Reservations */}
-          <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground px-1 flex items-center gap-2">
-              <CalendarDays className="w-4 h-4" />
-              Mi Agenda de Reservas
-            </h2>
+        {/* Catalog of Amenities Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {resources.map((res) => {
+            const config = resourceIcons[res.name] || { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' };
+            const Icon = config.icon;
+            return (
+              <div 
+                key={res.id}
+                className="p-5 rounded-2xl bg-card transition-[color,background-color,border-color,box-shadow,opacity,transform] flex items-start gap-4 shadow-hairline"
+              >
+                <div className={`w-12 h-12 rounded-xl ${config.bg} ${config.color} border ${config.border} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-semibold text-base text-foreground truncate">{res.name}</h3>
+                    <span className="text-xs font-semibold text-primary px-2 py-0.5 rounded-md bg-primary/10">
+                      {res.base_price ? formatPrice(res.base_price) : 'Gratuito'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2 font-medium">
+                    {res.description || 'Espacio común acondicionado para el disfrute de la comunidad.'}
+                  </p>
+                  <div className="mt-3 text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-primary" />
+                    <span>Máximo {res.max_hours_per_booking || 4} horas de uso continuo</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main Content Layout: Reservations Agenda + Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* User's Active Reservations */}
+          <div className="lg:col-span-2 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-primary" />
+                Mis reservas
+              </h2>
+              <span className="text-xs font-medium text-muted-foreground">
+                {reservations.length} {reservations.length === 1 ? 'reserva activa' : 'reservas activas'}
+              </span>
+            </div>
             
             {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center py-20 rounded-2xl bg-card shadow-hairline">
+                <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                <p className="text-xs font-medium text-muted-foreground">Cargando reservas...</p>
               </div>
             ) : reservations.length === 0 ? (
-              <Card className="card-elevated border-none shadow-2xl p-20 text-center bg-card/30 backdrop-blur-xl">
-                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CalendarDays className="w-10 h-10 text-muted-foreground/40" />
+              <div className="border border-dashed border-border/80 rounded-2xl p-12 text-center bg-card">
+                <div className="w-16 h-16 bg-muted rounded-2xl border border-border/70 flex items-center justify-center mx-auto mb-4">
+                  <CalendarDays className="w-8 h-8 text-muted-foreground/60" />
                 </div>
-                <h3 className="font-black text-xl text-foreground">No tienes reservas activas</h3>
-                <p className="text-muted-foreground font-medium mt-2">¿Qué tal si agendas un espacio para este fin de semana?</p>
-              </Card>
+                <h3 className="font-semibold text-lg text-foreground">No tienes reservas activas</h3>
+                <p className="text-muted-foreground text-sm font-medium mt-1 max-w-md mx-auto">
+                  Para apartar un área común, pulsa "Nueva reserva".
+                </p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {reservations.map((reservation) => {
-                  const config = resourceIcons[reservation.resources?.name || ''] || { icon: Building, color: 'text-slate-500', bg: 'bg-slate-500/10' };
+                  const config = resourceIcons[reservation.resources?.name || ''] || { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' };
                   const Icon = config.icon;
                   
                   return (
-                    <Card key={reservation.id} className="card-elevated border-none shadow-lg hover:shadow-xl transition-all overflow-hidden bg-card/40 backdrop-blur-xl group">
-                      <div className="flex flex-col md:flex-row items-center p-6 gap-6">
-                        <div className={`p-4 rounded-2xl ${config.bg} ${config.color} shadow-sm`}>
-                          <Icon className="w-8 h-8" />
+                    <div 
+                      key={reservation.id} 
+                      className="p-5 sm:p-6 rounded-2xl bg-card transition-[color,background-color,border-color,box-shadow,opacity,transform] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-hairline"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`w-14 h-14 rounded-xl ${config.bg} ${config.color} border ${config.border} flex items-center justify-center flex-shrink-0`}>
+                          <Icon className="w-7 h-7" />
                         </div>
-                        <div className="flex-1 text-center md:text-left">
-                          <h3 className="font-black text-xl text-foreground group-hover:text-primary transition-colors leading-tight">{reservation.resources?.name}</h3>
-                          <div className="flex flex-wrap items-center gap-4 mt-2 justify-center md:justify-start">
-                            <div className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground">
-                              <CalendarDays className="w-4 h-4" />
-                              {format(new Date(reservation.start_time), "d 'de' MMMM", { locale: es })}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-lg text-foreground">{reservation.resources?.name}</h3>
+                            {getStatusBadge(reservation.status)}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                              <span className="capitalize">{format(new Date(reservation.start_time), "EEEE d 'de' MMMM", { locale: es })}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground">
-                              <Clock className="w-4 h-4" />
-                              {format(new Date(reservation.start_time), 'h:mm a')} - {format(new Date(reservation.end_time), 'h:mm a')}
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-primary" />
+                              <span>{format(new Date(reservation.start_time), 'h:mm a')} – {format(new Date(reservation.end_time), 'h:mm a')}</span>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col md:flex-row items-center gap-4">
-                          <div className="text-right hidden md:block">
-                            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Costo</p>
-                            <p className="text-lg font-black text-primary">{formatPrice(reservation.price)}</p>
-                          </div>
-                          {getStatusBadge(reservation.status)}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:bg-destructive/10 rounded-full"
-                            onClick={() => handleCancel(reservation.id)}
-                          >
-                            <X className="w-5 h-5" />
-                          </Button>
+                          {reservation.notes && (
+                            <p className="text-xs text-muted-foreground font-medium italic mt-1">
+                              "{reservation.notes}"
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </Card>
+
+                      <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-5 pt-3 md:pt-0 border-t md:border-t-0 border-border/70">
+                        <div className="text-left md:text-right">
+                          <p className="text-xs font-medium text-muted-foreground">Costo</p>
+                          <p className="text-base font-semibold text-foreground">{formatPrice(reservation.price)}</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-10 px-4 rounded-xl border border-rose-300 dark:border-rose-900/50 text-rose-600 hover:bg-rose-500/10 font-semibold text-xs gap-1.5"
+                          onClick={() => handleCancel(reservation.id)}
+                          title="Cancelar reserva"
+                        >
+                          <X className="w-4 h-4" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             )}
           </div>
 
-          {/* Availability Overview Sidebar */}
+          {/* Right Sidebar: Rules & Today's Schedule */}
           <div className="space-y-6">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground px-1 flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              Ocupación General
-            </h2>
-            <Card className="card-elevated border-none shadow-2xl bg-card/30 backdrop-blur-xl overflow-hidden">
-              <CardHeader className="pb-2 border-b border-border/50 bg-background/40">
-                <CardTitle className="text-sm font-black uppercase tracking-widest">Actividades de hoy</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
+            {/* Architectural Reglamento Card (Clean, elegant, sober - replaces provisional blue gradient card) */}
+            <div className="rounded-2xl bg-card overflow-hidden shadow-hairline">
+              <div className="p-4 bg-muted/40 border-b border-border/70 flex items-center gap-2.5">
+                <div className="flex items-center justify-center text-muted-foreground">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-foreground">Reglamento de convivencia</h3>
+                  <p className="text-xs text-muted-foreground font-medium">Normas vigentes de uso de áreas comunes</p>
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="space-y-3 text-[13px] text-muted-foreground">
+                  <div className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-md bg-muted text-foreground/80 flex items-center justify-center font-medium text-xs flex-shrink-0 mt-0.5">
+                      1
+                    </span>
+                    <p className="leading-relaxed">
+                      <strong className="text-foreground">Antelación:</strong> Solicita tu espacio con un mínimo de 24 horas y un máximo de 30 días de anticipación.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-md bg-muted text-foreground/80 flex items-center justify-center font-medium text-xs flex-shrink-0 mt-0.5">
+                      2
+                    </span>
+                    <p className="leading-relaxed">
+                      <strong className="text-foreground">Cancelaciones:</strong> Deben realizarse al menos 4 horas antes de la hora pactada para liberar el turno a otros vecinos.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-md bg-muted text-foreground/80 flex items-center justify-center font-medium text-xs flex-shrink-0 mt-0.5">
+                      3
+                    </span>
+                    <p className="leading-relaxed">
+                      <strong className="text-foreground">Cobro:</strong> Las tarifas por uso de espacios se consolidarán en tu próximo estado de cuenta mensual.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-md bg-muted text-foreground/80 flex items-center justify-center font-medium text-xs flex-shrink-0 mt-0.5">
+                      4
+                    </span>
+                    <p className="leading-relaxed">
+                      <strong className="text-foreground">Entrega y cuidado:</strong> El espacio debe entregarse limpio y sin ruidos molestos pasadas las 10:00 PM.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <PhoneCall className="w-3.5 h-3.5 text-primary" />
+                    Garita:
+                  </span>
+                  <span className="text-foreground font-semibold">Ext. 101</span>
+                </div>
+              </div>
+            </div>
+
+            {/* General Occupancy Today Card */}
+            <div className="rounded-2xl bg-card overflow-hidden shadow-hairline">
+              <div className="p-4 bg-muted/30 border-b border-border/70 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-xs text-foreground">Turnos reservados hoy</h3>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={fetchData}
+                  className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Actualizar
+                </Button>
+              </div>
+
+              <div className="p-4">
                 {allReservations.length === 0 ? (
-                  <div className="p-10 text-center">
-                    <p className="text-xs font-bold text-muted-foreground uppercase">Todo despejado hoy</p>
+                  <div className="py-8 text-center text-muted-foreground">
+                    <CheckCircle className="w-6 h-6 mx-auto mb-2 text-emerald-500 opacity-80" />
+                    <p className="text-xs font-semibold text-foreground">Todo despejado hoy</p>
+                    <p className="text-xs mt-0.5 font-medium">Las áreas comunes están libres para solicitud.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border/50">
-                    {allReservations.map((reservation) => (
-                      <div key={reservation.id} className="p-5 hover:bg-primary/5 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-primary px-2 py-0.5 bg-primary/10 rounded-full">
-                            {reservation.resources?.name}
-                          </span>
-                          <span className="text-[10px] font-black text-muted-foreground/60">{format(new Date(reservation.start_time), 'h:mm a')}</span>
+                  <div className="space-y-3">
+                    {allReservations.slice(0, 5).map((r) => (
+                      <div key={r.id} className="p-3 rounded-xl border border-border/80 bg-background flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">{r.resources?.name}</p>
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {format(new Date(r.start_time), 'h:mm a')} – {format(new Date(r.end_time), 'h:mm a')}
+                          </p>
                         </div>
-                        <p className="text-sm font-bold text-foreground">
-                          Ocupado por {reservation.profiles?.full_name?.split(' ')[0] || 'Residente'}
-                        </p>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">
-                          Apto {reservation.profiles?.apartment_number || 'S/N'}
-                        </p>
+                        <span className="text-xs font-semibold uppercase px-2.5 py-1 rounded-md bg-muted text-foreground border border-border">
+                          Apto {r.profiles?.apartment_number || 'S/N'}
+                        </span>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-              <div className="p-4 bg-muted/20 border-t border-border/50">
-                <Button variant="ghost" className="w-full text-xs font-bold gap-2 text-muted-foreground" onClick={fetchData}>
-                  Actualizar disponibilidad <ArrowRight className="w-3 h-3" />
-                </Button>
               </div>
-            </Card>
-
-            <Card className="card-elevated border-none bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6 shadow-xl shadow-blue-200">
-              <h3 className="font-black text-lg mb-3 flex items-center gap-2">
-                <Info className="w-5 h-5" />
-                Reglamento
-              </h3>
-              <ul className="text-xs space-y-3 font-medium opacity-90">
-                <li className="flex gap-2">• Reservas con máximo 48h de antelación.</li>
-                <li className="flex gap-2">• Cancelaciones permitidas hasta 4h antes.</li>
-                <li className="flex gap-2">• El costo se cargará a tu próxima alícuota.</li>
-              </ul>
-            </Card>
+            </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        .scrollbar-custom::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollbar-custom::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .scrollbar-custom::-webkit-scrollbar-thumb {
-          background: hsl(var(--muted-foreground) / 0.2);
-          border-radius: 10px;
-        }
-        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--primary) / 0.2);
-        }
-      `}</style>
     </DashboardLayout>
   );
 };

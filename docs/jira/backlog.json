@@ -1,0 +1,932 @@
+{
+  "project": {
+    "key": "GIS",
+    "name": "Gestor Residencial Gissel's 2"
+  },
+  "sprints": [
+    {
+      "name": "Sprint 1",
+      "goal": "Base del sistema: proyecto, modelo de datos y acceso",
+      "start": "2026-07-06",
+      "end": "2026-07-19",
+      "items": [
+        "TT-01",
+        "TT-02",
+        "HU-01",
+        "HU-03",
+        "HU-04"
+      ],
+      "points": 17
+    },
+    {
+      "name": "Sprint 2",
+      "goal": "Gestión de residentes, roles y suspensión",
+      "start": "2026-07-20",
+      "end": "2026-08-02",
+      "items": [
+        "HU-30",
+        "HU-31",
+        "HU-02",
+        "HU-20"
+      ],
+      "points": 13
+    },
+    {
+      "name": "Sprint 3",
+      "goal": "El residente consulta y paga sus alícuotas",
+      "start": "2026-08-03",
+      "end": "2026-08-16",
+      "items": [
+        "HU-24",
+        "HU-05",
+        "HU-06",
+        "HU-08",
+        "HU-09"
+      ],
+      "points": 14
+    },
+    {
+      "name": "Sprint 4",
+      "goal": "La administración emite, verifica y concilia cobros",
+      "start": "2026-08-17",
+      "end": "2026-08-30",
+      "items": [
+        "HU-23",
+        "HU-22",
+        "HU-25",
+        "HU-07",
+        "HU-21"
+      ],
+      "points": 23
+    },
+    {
+      "name": "Sprint 5",
+      "goal": "Reservas sin cruces de horario",
+      "start": "2026-08-31",
+      "end": "2026-09-13",
+      "items": [
+        "HU-27",
+        "HU-10",
+        "HU-11",
+        "HU-26",
+        "HU-12"
+      ],
+      "points": 21
+    },
+    {
+      "name": "Sprint 6",
+      "goal": "Solicitudes, comunicados, chat y notificaciones",
+      "start": "2026-09-14",
+      "end": "2026-09-27",
+      "items": [
+        "HU-13",
+        "HU-28",
+        "HU-14",
+        "HU-29",
+        "HU-15",
+        "HU-16",
+        "HU-17"
+      ],
+      "points": 22
+    },
+    {
+      "name": "Sprint 7",
+      "goal": "Ingreso con QR y control en garita",
+      "start": "2026-09-28",
+      "end": "2026-10-11",
+      "items": [
+        "HU-18",
+        "HU-32",
+        "HU-33",
+        "HU-19"
+      ],
+      "points": 21
+    },
+    {
+      "name": "Sprint 8",
+      "goal": "Marca, reportes y rediseño de la experiencia",
+      "start": "2026-10-12",
+      "end": "2026-10-25",
+      "items": [
+        "HU-34",
+        "HU-35",
+        "TT-03",
+        "TT-04",
+        "TT-05"
+      ],
+      "points": 21
+    },
+    {
+      "name": "Sprint 9",
+      "goal": "Seguridad, pruebas y entrega",
+      "start": "2026-10-26",
+      "end": "2026-11-08",
+      "items": [
+        "HU-36",
+        "TT-06",
+        "TT-07",
+        "TT-08",
+        "TT-09"
+      ],
+      "points": 26
+    }
+  ],
+  "epics": [
+    {
+      "key": "EP-1",
+      "name": "Acceso, roles y seguridad",
+      "items": [
+        "HU-01",
+        "HU-02",
+        "HU-03",
+        "HU-04",
+        "HU-30",
+        "HU-31",
+        "HU-36",
+        "TT-01",
+        "TT-02"
+      ]
+    },
+    {
+      "key": "EP-2",
+      "name": "Alícuotas y pagos",
+      "items": [
+        "HU-05",
+        "HU-06",
+        "HU-07",
+        "HU-08",
+        "HU-09",
+        "HU-21",
+        "HU-22",
+        "HU-23",
+        "HU-24",
+        "HU-25"
+      ]
+    },
+    {
+      "key": "EP-3",
+      "name": "Reservas de áreas comunes",
+      "items": [
+        "HU-10",
+        "HU-11",
+        "HU-12",
+        "HU-26",
+        "HU-27",
+        "HU-35"
+      ]
+    },
+    {
+      "key": "EP-4",
+      "name": "Solicitudes y comunicación",
+      "items": [
+        "HU-13",
+        "HU-14",
+        "HU-15",
+        "HU-16",
+        "HU-17",
+        "HU-20",
+        "HU-28",
+        "HU-29"
+      ]
+    },
+    {
+      "key": "EP-5",
+      "name": "Acceso con QR y garita",
+      "items": [
+        "HU-18",
+        "HU-19",
+        "HU-32",
+        "HU-33"
+      ]
+    },
+    {
+      "key": "EP-6",
+      "name": "Experiencia, calidad y entrega",
+      "items": [
+        "HU-34",
+        "TT-03",
+        "TT-04",
+        "TT-05",
+        "TT-06",
+        "TT-07",
+        "TT-08",
+        "TT-09"
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "key": "HU-01",
+      "type": "Historia",
+      "title": "Iniciar sesión",
+      "description": "Como residente o administrador, quiero ingresar con mi correo y contraseña para usar el portal.",
+      "criteria": [
+        "Dado un correo y una contraseña válidos, cuando pulso \"Continuar\", entonces entro al inicio de mi rol.",
+        "Dado un correo mal escrito, cuando intento ingresar, entonces veo \"Ingresa un correo electrónico válido\" y no se consulta el servidor.",
+        "Dado credenciales incorrectas, cuando intento ingresar, entonces veo un mensaje que no revela cuál dato falló.",
+        "Dado que ya tengo sesión, cuando abro la raíz del sitio, entonces voy al inicio; sin sesión, voy a la pantalla de acceso."
+      ],
+      "tests": "FRO-L01 a L04, FRO-A01, FRO-A02, UI-Z01, UI-Z02",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-1",
+      "sprint": "Sprint 1"
+    },
+    {
+      "key": "HU-02",
+      "type": "Historia",
+      "title": "Bloquear cuentas suspendidas",
+      "description": "Como administración, quiero que un residente suspendido por morosidad no pueda operar para hacer cumplir la suspensión.",
+      "criteria": [
+        "Dado un residente suspendido, cuando inicia sesión, entonces se cierra su sesión y ve \"Tu acceso está suspendido\".",
+        "Dado un residente suspendido, cuando llama a la API directamente, entonces no puede reservar, escribir en el chat ni subir imágenes.",
+        "Dado un residente suspendido, cuando intenta reactivarse a sí mismo, entonces la base de datos lo impide.",
+        "Dado un residente suspendido, cuando necesita reclamar, entonces sí puede abrir una solicitud.",
+        "Dado el QR de un residente suspendido, cuando se escanea en la garita, entonces se niega el acceso."
+      ],
+      "tests": "FRO-L05, SEG-I07, SEG-I11, SEG-I12, SEG-V08, SEG-A06, UI-Q03, UI-G02",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-1",
+      "sprint": "Sprint 2"
+    },
+    {
+      "key": "HU-03",
+      "type": "Historia",
+      "title": "Ver solo lo que me corresponde",
+      "description": "Como residente, quiero que nadie más vea mis pagos, comprobantes, solicitudes ni datos para proteger mi privacidad (LOPDP).",
+      "criteria": [
+        "Dado un residente, cuando consulta cualquier tabla privada, entonces solo recibe sus propias filas.",
+        "Dado un residente, cuando abre una ruta de administración, entonces es redirigido a su inicio.",
+        "Dado un visitante sin sesión, cuando consulta la API, entonces solo puede leer la marca del conjunto.",
+        "Dado un residente, cuando quiere ver a otro vecino, entonces solo obtiene su nombre y unidad, sin correo, teléfono ni estado.",
+        "Dado la administración, cuando consulta, entonces ve todos los registros."
+      ],
+      "tests": "SEG-C01 a C11, FRO-A03 a A07, FRO-N01, FRO-N02, UI-N01, UI-U05",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-1",
+      "sprint": "Sprint 1"
+    },
+    {
+      "key": "HU-04",
+      "type": "Historia",
+      "title": "Cerrar sesión",
+      "description": "Como usuario, quiero cerrar mi sesión para que nadie use mi cuenta en un equipo compartido.",
+      "criteria": [
+        "Dado que tengo sesión, cuando pulso \"Cerrar sesión\" en el menú, entonces la sesión termina."
+      ],
+      "tests": "FRO-N03",
+      "priority": "Debe",
+      "points": 1,
+      "epic": "EP-1",
+      "sprint": "Sprint 1"
+    },
+    {
+      "key": "HU-05",
+      "type": "Historia",
+      "title": "Consultar mi estado de cuenta",
+      "description": "Como residente, quiero ver mis alícuotas y su estado para saber cuánto debo.",
+      "criteria": [
+        "Dado mis alícuotas, cuando abro \"Alícuotas\", entonces veo el total acumulado, lo pagado, lo pendiente y lo vencido.",
+        "Dado una alícuota pendiente, cuando abro el inicio, entonces veo \"Tienes una alícuota pendiente de pago\" y el botón para subir el comprobante.",
+        "Dado un comprobante enviado, cuando abro el inicio, entonces veo que está en revisión.",
+        "Dado que estoy al día, cuando abro el inicio, entonces se me ofrece la llave QR."
+      ],
+      "tests": "UI-D01, UI-I01 a I03, SEG-C05, SEG-C06",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-2",
+      "sprint": "Sprint 3"
+    },
+    {
+      "key": "HU-06",
+      "type": "Historia",
+      "title": "Subir el comprobante de una alícuota",
+      "description": "Como residente, quiero subir la foto o el PDF de mi transferencia para que la administración verifique mi pago.",
+      "criteria": [
+        "Dado una alícuota pendiente, cuando subo una imagen o PDF de hasta 5 MB, entonces se guarda en mi carpeta privada y la alícuota queda \"en revisión\".",
+        "Dado un archivo que no es imagen ni PDF, o de más de 5 MB, cuando lo elijo, entonces veo el motivo y no se envía.",
+        "Dado que la base de datos rechaza el registro, cuando subo el comprobante, entonces veo el error y no un falso \"enviado\".",
+        "Dado que subo el comprobante, cuando intento marcar mi alícuota como pagada por la API, entonces la base de datos lo impide.",
+        "Dado el almacenamiento caído, cuando subo el comprobante, entonces se guarda una copia optimizada y el flujo continúa."
+      ],
+      "tests": "UI-D02 a D05, FLU-C01, FLU-C02, FLU-C04, FLU-C05, UNI-C01 a C03, SEG-I01 a I04, SEG-A01 a A03",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-2",
+      "sprint": "Sprint 3"
+    },
+    {
+      "key": "HU-07",
+      "type": "Historia",
+      "title": "Pagar cargos extra",
+      "description": "Como residente, quiero ver mis multas y servicios adicionales y subir su comprobante para ponerme al día.",
+      "criteria": [
+        "Dado un cargo pendiente, cuando abro \"Pagos\", entonces lo veo con su concepto y monto.",
+        "Dado un cargo, cuando subo su comprobante, entonces queda en revisión.",
+        "Dado un error al registrar, cuando subo el comprobante, entonces veo el motivo."
+      ],
+      "tests": "UI-P01 a P03, FLU-C03",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-2",
+      "sprint": "Sprint 4"
+    },
+    {
+      "key": "HU-08",
+      "type": "Historia",
+      "title": "Saber por qué se rechazó mi comprobante",
+      "description": "Como residente, quiero conocer el motivo del rechazo para corregirlo y volver a enviarlo.",
+      "criteria": [
+        "Dado un comprobante rechazado, cuando la administración lo rechaza, entonces se quita el comprobante, se guarda el motivo y recibo una notificación.",
+        "Dado un rechazo, cuando abro \"Alícuotas\", entonces veo el motivo y puedo subir uno nuevo.",
+        "Dado que reenvío, cuando se guarda el nuevo comprobante, entonces se limpia el motivo anterior."
+      ],
+      "tests": "UI-D06, UI-O03, UI-M02, UI-C02, FLU-C01, FLU-C03",
+      "priority": "Debe",
+      "points": 2,
+      "epic": "EP-2",
+      "sprint": "Sprint 3"
+    },
+    {
+      "key": "HU-09",
+      "type": "Historia",
+      "title": "Copiar los datos de la transferencia",
+      "description": "Como residente, quiero copiar el número de cuenta para transferir sin errores.",
+      "criteria": [
+        "Dado los datos bancarios, cuando pulso \"Copiar número de cuenta\", entonces el número queda en el portapapeles."
+      ],
+      "tests": "UI-D07",
+      "priority": "Debería",
+      "points": 1,
+      "epic": "EP-2",
+      "sprint": "Sprint 3"
+    },
+    {
+      "key": "HU-10",
+      "type": "Historia",
+      "title": "Reservar un área sin cruces de horario",
+      "description": "Como residente, quiero reservar el salón social u otra área para organizar un evento.",
+      "criteria": [
+        "Dado un turno libre, cuando envío la solicitud, entonces se crea una reserva *pendiente* y el sistema calcula el precio.",
+        "Dado un turno ocupado, pasado o fuera del horario del área, cuando lo veo en el calendario, entonces no lo puedo elegir.",
+        "Dado que dos residentes piden el mismo horario a la vez, cuando se guardan, entonces solo una reserva prospera.",
+        "Dado una reserva más larga que el máximo del área, en el pasado o que cruza la medianoche, cuando la envío, entonces se rechaza con el motivo.",
+        "Dado un residente, cuando intenta crearse una reserva ya confirmada o con precio 0, entonces queda pendiente y con el precio real."
+      ],
+      "tests": "UI-V01 a V03, UI-K01 a K04, FUN-V01, FUN-V03 a V07, SEG-V02, SEG-V09",
+      "priority": "Debe",
+      "points": 8,
+      "epic": "EP-3",
+      "sprint": "Sprint 5"
+    },
+    {
+      "key": "HU-11",
+      "type": "Historia",
+      "title": "Cancelar mi reserva",
+      "description": "Como residente, quiero cancelar una reserva que ya no necesito para liberar el horario a otros vecinos.",
+      "criteria": [
+        "Dado una reserva vigente mía, cuando la cancelo y confirmo, entonces queda cancelada y el horario se libera.",
+        "Dado la reserva de otro residente, cuando intento cancelarla, entonces no se modifica.",
+        "Dado una reserva mía, cuando intento confirmarla o moverla de horario, entonces la base de datos lo impide."
+      ],
+      "tests": "UI-V04, FUN-V06, FUN-V15, SEG-V10 a V12",
+      "priority": "Debe",
+      "points": 2,
+      "epic": "EP-3",
+      "sprint": "Sprint 5"
+    },
+    {
+      "key": "HU-12",
+      "type": "Historia",
+      "title": "Saber si mi reserva fue aprobada",
+      "description": "Como residente, quiero enterarme de la decisión de la administración para planificar mi evento.",
+      "criteria": [
+        "Dado una reserva aprobada, cuando la administración la autoriza, entonces recibo \"Reserva confirmada\".",
+        "Dado una reserva rechazada, cuando la administración la rechaza con motivo, entonces recibo \"Reserva rechazada\" con el motivo y la veo como *Rechazada*, no como *Cancelada*."
+      ],
+      "tests": "UI-R01, UI-R02, UI-B01",
+      "priority": "Debería",
+      "points": 3,
+      "epic": "EP-3",
+      "sprint": "Sprint 5"
+    },
+    {
+      "key": "HU-13",
+      "type": "Historia",
+      "title": "Reportar una solicitud",
+      "description": "Como residente, quiero reportar un daño, una queja o una sugerencia para que la administración la atienda.",
+      "criteria": [
+        "Dado el formulario completo, cuando pulso \"Enviar solicitud\", entonces se crea abierta con mi asunto, descripción y categoría.",
+        "Dado el formulario vacío, cuando intento enviarlo, entonces no se envía.",
+        "Dado un residente, cuando intenta crear una solicitud ya \"resuelta\" o con respuesta oficial, entonces se guarda como abierta y sin respuesta."
+      ],
+      "tests": "UI-T02, UI-T03, SEG-I23, SEG-I24",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-4",
+      "sprint": "Sprint 6"
+    },
+    {
+      "key": "HU-14",
+      "type": "Historia",
+      "title": "Ver la respuesta de la administración",
+      "description": "Como residente, quiero ver el estado y la respuesta de mi solicitud para saber si se resolvió.",
+      "criteria": [
+        "Dado una solicitud respondida, cuando abro \"Solicitudes\", entonces veo su estado (Abierta, En progreso, Resuelta, Cerrada) y la respuesta.",
+        "Dado que la administración responde, cuando guarda la respuesta, entonces recibo una notificación."
+      ],
+      "tests": "UI-T01, UI-S01",
+      "priority": "Debe",
+      "points": 2,
+      "epic": "EP-4",
+      "sprint": "Sprint 6"
+    },
+    {
+      "key": "HU-15",
+      "type": "Historia",
+      "title": "Leer los comunicados oficiales",
+      "description": "Como residente, quiero leer los avisos de la administración para estar informado.",
+      "criteria": [
+        "Dado comunicados publicados, cuando abro \"Comunicados\", entonces los leo sin opciones para editarlos."
+      ],
+      "tests": "UI-N01, SEG-C08",
+      "priority": "Debe",
+      "points": 2,
+      "epic": "EP-4",
+      "sprint": "Sprint 6"
+    },
+    {
+      "key": "HU-16",
+      "type": "Historia",
+      "title": "Conversar con los vecinos",
+      "description": "Como residente, quiero un chat comunitario para coordinar con mis vecinos.",
+      "criteria": [
+        "Dado mensajes de otros vecinos, cuando abro el chat, entonces veo su nombre y unidad.",
+        "Dado un mensaje de hasta 2000 caracteres, cuando lo envío, entonces se publica a mi nombre. Una foto puede ir sin texto.",
+        "Dado un envío fallido, cuando ocurre el error, entonces el mensaje se retira y veo el aviso.",
+        "Dado una foto, cuando la adjunto, entonces se sube a mi carpeta. Otros archivos se rechazan.",
+        "Dado un residente, cuando intenta escribir a nombre de otro o borrar mensajes ajenos, entonces la base de datos lo impide."
+      ],
+      "tests": "UI-H01 a H05, FUN-H01, SEG-C09, SEG-C10, SEG-I27 a I29, FRO-U09 a U11",
+      "priority": "Debería",
+      "points": 5,
+      "epic": "EP-4",
+      "sprint": "Sprint 6"
+    },
+    {
+      "key": "HU-17",
+      "type": "Historia",
+      "title": "Recibir notificaciones",
+      "description": "Como residente, quiero una campana con mis avisos para enterarme de pagos, reservas y respuestas.",
+      "criteria": [
+        "Dado avisos sin leer, cuando abro el portal, entonces la campana muestra cuántos hay.",
+        "Dado la lista, cuando pulso \"Marcar todas\", entonces el contador queda en cero al instante.",
+        "Dado un aviso, cuando lo elimino, entonces desaparece de la lista.",
+        "Dado un residente, cuando intenta enviar notificaciones a otros, entonces la base de datos lo impide."
+      ],
+      "tests": "UI-B01 a B03, FLU-N01, SEG-I25, SEG-I26",
+      "priority": "Debería",
+      "points": 5,
+      "epic": "EP-4",
+      "sprint": "Sprint 6"
+    },
+    {
+      "key": "HU-18",
+      "type": "Historia",
+      "title": "Tener mi llave digital",
+      "description": "Como residente, quiero un código QR personal para entrar por la garita sin tarjeta.",
+      "criteria": [
+        "Dado un residente nuevo, cuando se crea su cuenta, entonces recibe automáticamente un token QR permanente, único y aleatorio.",
+        "Dado mi token, cuando abro \"Acceso QR\", entonces veo el código; sin token, veo \"Sin código asignado\".",
+        "Dado un residente, cuando intenta crear o cambiar su token por la API, entonces la base de datos lo impide."
+      ],
+      "tests": "UI-Q01 a Q03, FUN-Q01 a Q03, SEG-Q04, SEG-I18, SEG-I19",
+      "priority": "Debería",
+      "points": 5,
+      "epic": "EP-5",
+      "sprint": "Sprint 7"
+    },
+    {
+      "key": "HU-19",
+      "type": "Historia",
+      "title": "Ver mis pases y mi historial de ingresos",
+      "description": "Como residente, quiero ver los pases emitidos a mi nombre y sus ingresos para controlar quién entra a mi vivienda.",
+      "criteria": [
+        "Dado pases y registros, cuando abro \"Mis accesos\", entonces veo mis pases y la bitácora; los de otros residentes no."
+      ],
+      "tests": "UI-Q04, SEG-Q08",
+      "priority": "Podría",
+      "points": 3,
+      "epic": "EP-5",
+      "sprint": "Sprint 7"
+    },
+    {
+      "key": "HU-20",
+      "type": "Historia",
+      "title": "Mantener mis datos de contacto",
+      "description": "Como residente, quiero actualizar mi nombre y teléfono para que la garita me ubique.",
+      "criteria": [
+        "Dado mi perfil, cuando guardo nombre y teléfono, entonces se actualizan.",
+        "Dado el campo de departamento, cuando abro el perfil, entonces lo veo pero no lo puedo editar (lo asigna la administración).",
+        "Dado el nombre vacío, cuando intento guardar, entonces el campo se marca inválido y no se guarda."
+      ],
+      "tests": "UI-F01 a F03, SEG-I08, SEG-I09",
+      "priority": "Debería",
+      "points": 2,
+      "epic": "EP-4",
+      "sprint": "Sprint 2"
+    },
+    {
+      "key": "HU-21",
+      "type": "Historia",
+      "title": "Ver el resumen de la comunidad",
+      "description": "Como administración, quiero métricas y una cola de comprobantes por revisar para priorizar mi trabajo.",
+      "criteria": [
+        "Dado comprobantes enviados, cuando abro el resumen, entonces veo solo los que faltan por revisar.",
+        "Dado un comprobante, cuando lo apruebo o rechazo desde la cola, entonces se actualiza la alícuota y se notifica al residente.",
+        "Dado un error al aprobar, cuando ocurre, entonces no se notifica al residente."
+      ],
+      "tests": "UI-O01 a O04",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-2",
+      "sprint": "Sprint 4"
+    },
+    {
+      "key": "HU-22",
+      "type": "Historia",
+      "title": "Verificar las alícuotas del mes",
+      "description": "Como administración, quiero aprobar, rechazar o reabrir alícuotas para mantener la cartera al día.",
+      "criteria": [
+        "Dado un comprobante, cuando lo apruebo, entonces la alícuota queda pagada con su fecha.",
+        "Dado un comprobante inválido, cuando lo rechazo, entonces sale de la cola con su motivo.",
+        "Dado una alícuota pagada por error, cuando la reabro, entonces vuelve a pendiente."
+      ],
+      "tests": "UI-M01 a M03, SEG-I05",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-2",
+      "sprint": "Sprint 4"
+    },
+    {
+      "key": "HU-23",
+      "type": "Historia",
+      "title": "Emitir las alícuotas del mes",
+      "description": "Como administración, quiero generar en un paso las alícuotas de todos los residentes para no crearlas una por una.",
+      "criteria": [
+        "Dado residentes con tipo de departamento, cuando emito el mes, entonces cada uno recibe una alícuota con la cuota de su tipo.",
+        "Dado alícuotas ya emitidas ese mes, cuando emito otra vez, entonces se omiten y se informa cuántas."
+      ],
+      "tests": "UI-M04",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-2",
+      "sprint": "Sprint 4"
+    },
+    {
+      "key": "HU-24",
+      "type": "Historia",
+      "title": "Definir tipos de departamento y cuotas",
+      "description": "Como administración, quiero registrar cuotas por tipo de vivienda para cobrar lo que corresponde a cada una.",
+      "criteria": [
+        "Dado un nombre y una cuota, cuando guardo el tipo, entonces queda disponible para emitir alícuotas.",
+        "Dado una cuota negativa, cuando intento guardarla, entonces se rechaza en la pantalla y en la base de datos."
+      ],
+      "tests": "UI-M05, UI-M06, SEG-I30",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-2",
+      "sprint": "Sprint 3"
+    },
+    {
+      "key": "HU-25",
+      "type": "Historia",
+      "title": "Registrar cargos y verificar sus pagos",
+      "description": "Como administración, quiero registrar multas o servicios y verificar sus comprobantes para cobrarlos.",
+      "criteria": [
+        "Dado un formulario incompleto, cuando intento crear el cargo, entonces no se envía.",
+        "Dado un comprobante de cargo, cuando lo apruebo o rechazo, entonces se actualiza y se notifica al residente.",
+        "Dado un monto negativo, cuando se intenta guardar, entonces la base de datos lo rechaza."
+      ],
+      "tests": "UI-C01 a C03, SEG-I30",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-2",
+      "sprint": "Sprint 4"
+    },
+    {
+      "key": "HU-26",
+      "type": "Historia",
+      "title": "Aprobar o rechazar reservas",
+      "description": "Como administración, quiero decidir sobre las reservas pendientes para controlar el uso de las áreas.",
+      "criteria": [
+        "Dado una reserva pendiente, cuando la autorizo, entonces queda confirmada y se notifica al residente.",
+        "Dado una reserva, cuando la rechazo con motivo, entonces queda *rechazada* y el residente recibe el motivo.",
+        "Dado que aprobarla crearía un cruce de horario, cuando la autorizo, entonces se rechaza con el motivo."
+      ],
+      "tests": "UI-R01 a R03, FUN-V13, FUN-V14, FUN-V16",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-3",
+      "sprint": "Sprint 5"
+    },
+    {
+      "key": "HU-27",
+      "type": "Historia",
+      "title": "Configurar áreas y tarifas",
+      "description": "Como administración, quiero definir precio y máximo de horas de cada área para aplicar el reglamento.",
+      "criteria": [
+        "Dado valores válidos, cuando guardo, entonces se actualiza la tarifa.",
+        "Dado un precio negativo o un máximo fuera de 1 a 24 horas, cuando guardo, entonces se rechaza."
+      ],
+      "tests": "UI-A01, UI-A02, SEG-I30",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-3",
+      "sprint": "Sprint 5"
+    },
+    {
+      "key": "HU-28",
+      "type": "Historia",
+      "title": "Atender solicitudes",
+      "description": "Como administración, quiero cambiar el estado de una solicitud y responder para resolver los problemas de los residentes.",
+      "criteria": [
+        "Dado una solicitud, cuando guardo un estado y una respuesta, entonces se actualiza y se notifica al residente."
+      ],
+      "tests": "UI-S01",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-4",
+      "sprint": "Sprint 6"
+    },
+    {
+      "key": "HU-29",
+      "type": "Historia",
+      "title": "Publicar comunicados",
+      "description": "Como administración, quiero publicar, editar y eliminar comunicados para informar a la comunidad.",
+      "criteria": [
+        "Dado un título y un contenido, cuando publico, entonces el comunicado queda con mi autoría.",
+        "Dado un error al publicar, cuando ocurre, entonces el formulario sigue abierto con lo escrito.",
+        "Dado un comunicado, cuando lo elimino y confirmo, entonces desaparece.",
+        "Dado un residente, cuando intenta publicar por la API, entonces la base de datos lo impide."
+      ],
+      "tests": "UI-N02 a N04, SEG-I20, SEG-I21",
+      "priority": "Debe",
+      "points": 2,
+      "epic": "EP-4",
+      "sprint": "Sprint 6"
+    },
+    {
+      "key": "HU-30",
+      "type": "Historia",
+      "title": "Registrar y suspender residentes",
+      "description": "Como administración, quiero dar de alta residentes y suspenderlos por morosidad para mantener el padrón.",
+      "criteria": [
+        "Dado los datos del residente, cuando lo registro, entonces se crea su cuenta con su unidad y mi sesión sigue activa.",
+        "Dado un correo ya registrado o una contraseña de menos de 8 caracteres, cuando intento registrar, entonces veo el motivo.",
+        "Dado un residente, cuando lo suspendo, entonces su estado cambia a bloqueado.",
+        "Dado mi propia cuenta, cuando veo el padrón, entonces no puedo suspenderme."
+      ],
+      "tests": "UI-U01 a U03, FRO-U01 a U06, SEG-I10",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-1",
+      "sprint": "Sprint 2"
+    },
+    {
+      "key": "HU-31",
+      "type": "Historia",
+      "title": "Asignar roles",
+      "description": "Como superadministrador, quiero promover o degradar administradores para delegar la gestión.",
+      "criteria": [
+        "Dado un residente, cuando lo promuevo, entonces queda con un único rol de administrador.",
+        "Dado un administrador común, cuando abre el padrón, entonces no ve el selector de roles y no puede otorgar ni quitar el rol de superadministrador.",
+        "Dado cualquier usuario, cuando intenta cambiar su propio rol, entonces la base de datos lo impide."
+      ],
+      "tests": "UI-U04 a U06, FRO-U07, FRO-U08, FUN-R01, FUN-R02, SEG-I13 a I17, UNI-R01 a R05",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-1",
+      "sprint": "Sprint 2"
+    },
+    {
+      "key": "HU-32",
+      "type": "Historia",
+      "title": "Emitir pases para visitantes",
+      "description": "Como administración, quiero generar pases temporales y registrar entradas y salidas para controlar quién ingresa.",
+      "criteria": [
+        "Dado un visitante sin nombre, cuando intento emitir el pase, entonces el botón está deshabilitado.",
+        "Dado un visitante, cuando emito el pase, entonces recibe un código aleatorio con vigencia de 24 horas.",
+        "Dado un pase vigente, cuando registro la entrada, entonces queda en la bitácora.",
+        "Dado un pase vencido, cuando se valida, entonces se rechaza."
+      ],
+      "tests": "UI-X01 a X04, FUN-Q07, SEG-Q09",
+      "priority": "Debería",
+      "points": 5,
+      "epic": "EP-5",
+      "sprint": "Sprint 7"
+    },
+    {
+      "key": "HU-33",
+      "type": "Historia",
+      "title": "Validar QR en la garita",
+      "description": "Como guardia, quiero escanear el QR del residente para decidir si abro la talanquera.",
+      "criteria": [
+        "Dado un residente al día, cuando escaneo su QR, entonces veo \"Acceso autorizado\" con su nombre y unidad.",
+        "Dado un residente suspendido, un pase vencido o un código desconocido, cuando lo escaneo, entonces se niega el acceso con el motivo.",
+        "Dado un residente, cuando intenta validar tokens ajenos, entonces no obtiene resultados."
+      ],
+      "tests": "UI-G01 a G04, UNI-Q01 a Q07, FUN-Q05, SEG-Q06",
+      "priority": "Debería",
+      "points": 8,
+      "epic": "EP-5",
+      "sprint": "Sprint 7"
+    },
+    {
+      "key": "HU-34",
+      "type": "Historia",
+      "title": "Personalizar la marca del conjunto",
+      "description": "Como administración, quiero cambiar el nombre, el logotipo y el color para que el portal represente al conjunto.",
+      "criteria": [
+        "Dado un nombre, cuando guardo, entonces se aplica en todos los dispositivos.",
+        "Dado el nombre vacío, cuando intento guardar, entonces se rechaza.",
+        "Dado un logo de imagen de hasta 3 MB, cuando lo subo, entonces se guarda; otros archivos se rechazan.",
+        "Dado un color que no es hexadecimal, cuando se intenta guardar, entonces la base de datos lo rechaza y la interfaz usa el azul por defecto."
+      ],
+      "tests": "UI-W01 a W04, FLU-T01 a T03, SEG-I22, UNI-T01, UNI-T02",
+      "priority": "Podría",
+      "points": 3,
+      "epic": "EP-6",
+      "sprint": "Sprint 8"
+    },
+    {
+      "key": "HU-35",
+      "type": "Historia",
+      "title": "Revisar el reporte de reservas",
+      "description": "Como administración, quiero ver la ocupación y la recaudación por áreas para rendir cuentas en la asamblea.",
+      "criteria": [
+        "Dado reservas del periodo, cuando abro el reporte, entonces veo el total de solicitudes, lo recaudado (solo confirmadas) y las pendientes."
+      ],
+      "tests": "UI-E01, UNI-F01",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-3",
+      "sprint": "Sprint 8"
+    },
+    {
+      "key": "HU-36",
+      "type": "Historia",
+      "title": "Proteger la plataforma",
+      "description": "Como responsable del sistema, quiero que la seguridad no dependa de la interfaz para que nadie la evite llamando a la API.",
+      "criteria": [
+        "Todas las tablas tienen RLS, ninguna queda sin políticas y ninguna política de escritura está abierta a usuarios anónimos.",
+        "Las funciones privilegiadas fijan `search_path` y no son ejecutables sin sesión.",
+        "Los archivos limitan tamaño y tipo; los comprobantes solo los ven su dueño y la administración.",
+        "La función de correo exige sesión de administrador y escapa todo el contenido.",
+        "La migración de endurecimiento se puede ejecutar varias veces."
+      ],
+      "tests": "SEG-E01 a E07, SEG-A04, SEG-A05, SEG-A07, EDGE-01 a EDGE-10",
+      "priority": "Debe",
+      "points": 8,
+      "epic": "EP-1",
+      "sprint": "Sprint 9"
+    },
+    {
+      "key": "TT-01",
+      "type": "Tarea técnica",
+      "title": "Configurar el proyecto (React, Vite, Tailwind, Supabase)",
+      "description": "Configurar el proyecto (React, Vite, Tailwind, Supabase).",
+      "criteria": [
+        "El proyecto compila y se despliega en desarrollo",
+        "Variables de entorno documentadas en el README"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-1",
+      "sprint": "Sprint 1"
+    },
+    {
+      "key": "TT-02",
+      "type": "Tarea técnica",
+      "title": "Diseñar el modelo de datos y las políticas RLS iniciales",
+      "description": "Diseñar el modelo de datos y las políticas RLS iniciales.",
+      "criteria": [
+        "Diagrama entidad-relación aprobado",
+        "Todas las tablas con RLS activado"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-1",
+      "sprint": "Sprint 1"
+    },
+    {
+      "key": "TT-03",
+      "type": "Tarea técnica",
+      "title": "Rediseñar la interfaz con principios de Apple y Amazon",
+      "description": "Rediseñar la interfaz con principios de Apple y Amazon.",
+      "criteria": [
+        "Tokens de color, sombras y movimiento unificados",
+        "Las 24 pantallas usan el sistema de diseño"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 8,
+      "epic": "EP-6",
+      "sprint": "Sprint 8"
+    },
+    {
+      "key": "TT-04",
+      "type": "Tarea técnica",
+      "title": "Pulir textos y encabezados de todas las pantallas",
+      "description": "Pulir textos y encabezados de todas las pantallas.",
+      "criteria": [
+        "Textos en español de Ecuador, sin mayúsculas sostenidas ni anglicismos"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 2,
+      "epic": "EP-6",
+      "sprint": "Sprint 8"
+    },
+    {
+      "key": "TT-05",
+      "type": "Tarea técnica",
+      "title": "Animaciones y microinteracciones (GSAP, transiciones)",
+      "description": "Animaciones y microinteracciones (GSAP, transiciones).",
+      "criteria": [
+        "Respeta \"reducir movimiento\" del sistema",
+        "Sin saltos de diseño al cargar"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-6",
+      "sprint": "Sprint 8"
+    },
+    {
+      "key": "TT-06",
+      "type": "Tarea técnica",
+      "title": "Suite de pruebas automatizadas (seguridad, funcionalidad e interfaz)",
+      "description": "Suite de pruebas automatizadas (seguridad, funcionalidad e interfaz).",
+      "criteria": [
+        "302 pruebas pasan",
+        "Pruebas de BD sobre las migraciones reales en PGlite",
+        "Informe de pruebas con hallazgos y matriz"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 8,
+      "epic": "EP-6",
+      "sprint": "Sprint 9"
+    },
+    {
+      "key": "TT-07",
+      "type": "Tarea técnica",
+      "title": "Unificar migraciones y crear la base en el proyecto de Supabase",
+      "description": "Unificar migraciones y crear la base en el proyecto de Supabase.",
+      "criteria": [
+        "Una sola migración idempotente y datos iniciales",
+        "Prueba de humo contra la base real: 23/23"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 5,
+      "epic": "EP-6",
+      "sprint": "Sprint 9"
+    },
+    {
+      "key": "TT-08",
+      "type": "Tarea técnica",
+      "title": "Publicar la demo funcional y el informe de pruebas",
+      "description": "Publicar la demo funcional y el informe de pruebas.",
+      "criteria": [
+        "La app corre en modo demo con base en el navegador",
+        "Informe publicado con esquema de la base"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 3,
+      "epic": "EP-6",
+      "sprint": "Sprint 9"
+    },
+    {
+      "key": "TT-09",
+      "type": "Tarea técnica",
+      "title": "Documentar historias de usuario y backlog Scrum",
+      "description": "Documentar historias de usuario y backlog Scrum.",
+      "criteria": [
+        "36 historias con criterios Dado/Cuando/Entonces",
+        "Backlog importable en Jira"
+      ],
+      "tests": "",
+      "priority": "Debe",
+      "points": 2,
+      "epic": "EP-6",
+      "sprint": "Sprint 9"
+    }
+  ]
+}

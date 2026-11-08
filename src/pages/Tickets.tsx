@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +11,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { MessageSquare, Plus, Loader2, Lightbulb, AlertTriangle, Wrench, HelpCircle, ArrowRight, Calendar, User, Clock } from 'lucide-react';
+import { 
+  MessageSquare, 
+  Plus, 
+  Loader2, 
+  Lightbulb, 
+  AlertTriangle, 
+  Wrench, 
+  HelpCircle, 
+  ArrowRight, 
+  Calendar, 
+  User, 
+  Clock, 
+  ShieldCheck, 
+  CheckCircle2,
+  FileText
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -27,11 +43,11 @@ interface Ticket {
   updated_at: string;
 }
 
-const categoryIcons: Record<string, any> = {
-  suggestion: { icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-  complaint: { icon: AlertTriangle, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-  maintenance: { icon: Wrench, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  other: { icon: HelpCircle, color: 'text-slate-500', bg: 'bg-slate-500/10' },
+const categoryIcons: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label?: string }> = {
+  suggestion: { icon: Lightbulb, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30', label: 'Sugerencia' },
+  complaint: { icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-500/10', border: 'border-rose-500/30', label: 'Queja o reclamo' },
+  maintenance: { icon: Wrench, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', label: 'Reporte técnico' },
+  other: { icon: HelpCircle, color: 'text-slate-600', bg: 'bg-slate-500/10', border: 'border-slate-500/30', label: 'Consulta general' },
 };
 
 const Tickets = () => {
@@ -43,23 +59,28 @@ const Tickets = () => {
   
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('maintenance');
 
   const fetchTickets = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('tickets')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      toast.error('Error al cargar tickets');
-    } else {
-      setTickets(data || []);
+      if (error) {
+        toast.error('Error al cargar tickets');
+      } else {
+        setTickets(data || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -74,132 +95,168 @@ const Tickets = () => {
     }
 
     setIsSubmitting(true);
-    const { error } = await supabase.from('tickets').insert({
-      user_id: user?.id,
-      subject,
-      description,
-      category,
-    });
+    try {
+      const { error } = await supabase.from('tickets').insert({
+        user_id: user?.id,
+        subject: subject.trim(),
+        description: description.trim(),
+        category,
+      });
 
-    if (error) {
-      toast.error('Error al crear el ticket');
-    } else {
-      toast.success('Ticket enviado con éxito');
-      fetchTickets();
-      setIsDialogOpen(false);
-      resetForm();
+      if (error) {
+        toast.error('No se pudo enviar la solicitud: ' + error.message);
+      } else {
+        toast.success('Solicitud enviada. La administración te responderá pronto.');
+        fetchTickets();
+        setIsDialogOpen(false);
+        resetForm();
+      }
+    } catch (err) {
+      toast.error('Ocurrió un error al enviar el ticket');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const resetForm = () => {
     setSubject('');
     setDescription('');
-    setCategory('');
+    setCategory('maintenance');
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'open':
-        return <StatusBadge status="primary">Abierto</StatusBadge>;
+        return <StatusBadge status="primary">Abierta</StatusBadge>;
       case 'in_progress':
-        return <StatusBadge status="warning">En Progreso</StatusBadge>;
+        return <StatusBadge status="warning">En progreso</StatusBadge>;
       case 'resolved':
-        return <StatusBadge status="success">Resuelto</StatusBadge>;
+        return <StatusBadge status="success">Resuelta</StatusBadge>;
       case 'closed':
-        return <StatusBadge status="muted">Cerrado</StatusBadge>;
+        return <StatusBadge status="muted">Cerrada</StatusBadge>;
       default:
         return <StatusBadge status="muted">{status}</StatusBadge>;
     }
   };
 
-  const getCategoryLabel = (cat: string) => {
-    switch (cat) {
-      case 'suggestion': return 'Sugerencia';
-      case 'complaint': return 'Queja / PQR';
-      case 'maintenance': return 'Mantenimiento';
-      default: return 'Otro';
-    }
-  };
-
   return (
     <DashboardLayout>
-      <div className="space-y-10 max-w-6xl mx-auto">
+      <div className="space-y-8 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-4xl font-black flex items-center gap-4 text-foreground tracking-tight">
-              <div className="p-3 bg-primary/10 rounded-2xl">
-                <MessageSquare className="w-8 h-8 text-primary" />
-              </div>
-              Centro de Atención (PQR)
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[13px] font-medium text-primary">
+                Comunidad
+              </span>
+            </div>
+            <h1 className="text-[28px] sm:text-[32px] leading-tight font-semibold text-foreground tracking-tight">
+              Solicitudes
             </h1>
-            <p className="text-muted-foreground mt-2 text-lg font-medium">
-              Envía sugerencias, reporta mantenimientos o radica peticiones oficiales
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base font-medium">
+              Reporta daños, haz consultas o envía sugerencias, y sigue su estado.
             </p>
           </div>
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="lg" className="gap-2 rounded-2xl px-8 shadow-xl shadow-primary/20 h-14 font-black">
+              <Button 
+                size="lg" 
+                className="h-12 px-6 text-[15px] flex-shrink-0"
+              >
                 <Plus className="w-5 h-5" />
-                NUEVA SOLICITUD
+                Nueva solicitud
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg rounded-3xl border-none shadow-2xl bg-card/95 backdrop-blur-xl">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-black">Crear Solicitud</DialogTitle>
-                <DialogDescription className="font-medium">
-                  Nuestro equipo revisará tu caso en un plazo máximo de 24-48 horas hábiles.
+
+            <DialogContent className="sm:max-w-lg rounded-2xl bg-card p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="border-b border-border/70 pb-4">
+                <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                  <FileText className="w-4 h-4" />
+                  <span>Nueva solicitud</span>
+                </div>
+                <DialogTitle className="text-2xl font-semibold text-foreground mt-1">
+                  Crear solicitud de servicio
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground text-sm font-medium">
+                  La administración atenderá tu caso en un plazo estándar de 24 a 48 horas hábiles.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+
+              <form onSubmit={handleSubmit} className="space-y-5 pt-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Categoría</Label>
+                  <Label htmlFor="tickets-tipo-de-caso-categoria" className="text-xs font-semibold text-foreground">
+                    Tipo de Caso / Categoría *
+                  </Label>
                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="h-14 bg-muted/50 border-none rounded-2xl focus:ring-primary/20">
-                      <SelectValue placeholder="¿Qué tipo de solicitud es?" />
+                    <SelectTrigger id="tickets-tipo-de-caso-categoria" className="h-12">
+                      <SelectValue placeholder="Selecciona categoría" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-none shadow-xl">
-                      <SelectItem value="suggestion">Sugerencia</SelectItem>
-                      <SelectItem value="complaint">Queja / PQR</SelectItem>
-                      <SelectItem value="maintenance">Mantenimiento</SelectItem>
-                      <SelectItem value="other">Otro asunto</SelectItem>
+                    <SelectContent className="rounded-xl border border-border bg-card">
+                      <SelectItem value="maintenance" className="py-2.5">
+                        Mantenimiento o daño en áreas comunes
+                      </SelectItem>
+                      <SelectItem value="suggestion" className="py-2.5">
+                        Sugerencia o convivencia
+                      </SelectItem>
+                      <SelectItem value="complaint" className="py-2.5">
+                        Queja o reclamo
+                      </SelectItem>
+                      <SelectItem value="other" className="py-2.5">
+                        Otra consulta
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Asunto</Label>
-                  <Input
+                  <Label htmlFor="tickets-asunto-del-requerimiento" className="text-xs font-semibold text-foreground">
+                    Asunto del Requerimiento *
+                  </Label>
+                  <Input id="tickets-asunto-del-requerimiento"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Ej: Falla en luminaria pasillo 4"
+                    placeholder="Ej: Falla en luminaria pasillo Torre B"
                     required
-                    className="h-14 bg-muted/50 border-none rounded-2xl focus:ring-primary/20 font-medium"
+                    className="h-12"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Descripción Detallada</Label>
-                  <Textarea
+                  <Label htmlFor="tickets-descripcion-detallada" className="text-xs font-semibold text-foreground">
+                    Descripción Detallada *
+                  </Label>
+                  <Textarea id="tickets-descripcion-detallada"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe los detalles de tu solicitud..."
-                    rows={5}
+                    placeholder="Por favor explica claramente la situación, ubicación exacta y detalles pertinentes..."
+                    rows={4}
                     required
-                    className="bg-muted/50 border-none rounded-2xl focus:ring-primary/20 font-medium resize-none"
+                    className="border border-border/80 rounded-xl bg-background font-medium resize-none min-h-[110px]"
                   />
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl h-12 font-bold">
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-border/70">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)} 
+                    className="w-full sm:w-auto h-12 rounded-xl font-semibold border"
+                  >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} className="rounded-xl h-12 px-10 font-black shadow-lg shadow-primary/20">
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting} 
+                    className="w-full sm:w-auto h-12 px-8 rounded-xl font-semibold shadow-sm gap-2"
+                  >
                     {isSubmitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Enviando…
+                      </>
                     ) : (
-                      'ENVIAR TICKET'
+                      'Enviar solicitud'
                     )}
                   </Button>
                 </div>
@@ -208,99 +265,118 @@ const Tickets = () => {
           </Dialog>
         </div>
 
+        {/* Quick Category Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {Object.entries(categoryIcons).map(([key, item]) => {
+            const count = tickets.filter(t => t.category === key).length;
+            const Icon = item.icon;
+            return (
+              <div 
+                key={key}
+                className="p-4 rounded-2xl bg-card flex flex-col justify-between shadow-hairline"
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`w-10 h-10 rounded-xl ${item.bg} ${item.color} border ${item.border} flex items-center justify-center`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-xl font-semibold text-foreground">{count}</span>
+                </div>
+                <div className="mt-3">
+                  <p className="text-xs font-semibold text-foreground truncate">{item.label}</p>
+                  <p className="text-xs font-medium text-muted-foreground">{count} recibidas</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Tickets Grid */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <Loader2 className="w-10 h-10 lg:w-12 lg:h-12 animate-spin text-primary" />
-            <p className="text-[10px] lg:text-sm font-black uppercase tracking-widest text-muted-foreground">Sincronizando solicitudes...</p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              Historial de solicitudes
+            </h2>
+            <span className="text-xs font-medium text-muted-foreground">
+              {tickets.length} en total
+            </span>
           </div>
-        ) : tickets.length === 0 ? (
-          <Card className="card-elevated border-none shadow-2xl p-20 text-center bg-card/30 backdrop-blur-xl">
-            <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-8">
-              <MessageSquare className="w-12 h-12 text-primary/30" />
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 rounded-2xl bg-card shadow-hairline">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+              <p className="text-xs font-medium text-muted-foreground">Cargando solicitudes...</p>
             </div>
-            <h3 className="font-black text-2xl text-foreground">Bandeja de entrada vacía</h3>
-            <p className="text-muted-foreground font-medium mt-2 max-w-sm mx-auto">
-              No has radicado ninguna solicitud todavía. Presiona el botón "Nueva Solicitud" para empezar.
-            </p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            <AnimatePresence>
-              {tickets.map((ticket, index) => {
+          ) : tickets.length === 0 ? (
+            <div className="border border-dashed border-border/80 rounded-2xl p-12 text-center bg-card">
+              <div className="w-16 h-16 bg-muted rounded-2xl border border-border/70 flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-8 h-8 text-muted-foreground/60" />
+              </div>
+              <h3 className="font-semibold text-lg text-foreground">Sin solicitudes</h3>
+              <p className="text-muted-foreground text-sm font-medium mt-1 max-w-md mx-auto">
+                Para reportar un daño o hacer una consulta, pulsa "Nueva solicitud".
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {tickets.map((ticket) => {
                 const config = categoryIcons[ticket.category] || categoryIcons.other;
                 const Icon = config.icon;
                 
                 return (
-                  <motion.div
+                  <div 
                     key={ticket.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    className="p-5 sm:p-6 rounded-2xl bg-card transition-[color,background-color,border-color,box-shadow,opacity,transform] space-y-4 shadow-hairline"
                   >
-                    <Card className="card-elevated border-none shadow-lg hover:shadow-2xl transition-all overflow-hidden bg-card/40 backdrop-blur-xl group">
-                      <div className="flex flex-col">
-                        <div className={`h-1.5 lg:h-auto lg:w-2 ${config.bg.replace('/10', '')}`} />
-                        <CardContent className="p-5 lg:p-8 flex-1">
-                          <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
-                            <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 items-start flex-1 w-full">
-                              <div className={`p-3 lg:p-4 rounded-2xl ${config.bg} ${config.color} shadow-sm flex-shrink-0`}>
-                                <Icon className="w-6 h-6 lg:w-8 lg:h-8" />
-                              </div>
-                              <div className="space-y-3 flex-1 w-full">
-                                <div className="flex items-center gap-3 flex-wrap">
-                                  <h4 className="font-black text-xl lg:text-2xl text-foreground leading-tight group-hover:text-primary transition-colors">{ticket.subject}</h4>
-                                  <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${config.bg} ${config.color}`}>
-                                    {getCategoryLabel(ticket.category)}
-                                  </span>
-                                </div>
-                                <p className="text-muted-foreground text-sm lg:text-lg font-medium leading-relaxed max-w-3xl">
-                                  {ticket.description}
-                                </p>
-                                
-                                {ticket.admin_notes && (
-                                  <motion.div 
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className="mt-4 lg:mt-6 p-4 lg:p-6 rounded-2xl lg:rounded-3xl bg-primary/[0.03] border border-primary/10 relative overflow-hidden"
-                                  >
-                                    <div className="absolute top-0 left-0 w-1 h-full bg-primary/30" />
-                                    <div className="flex items-center gap-2 mb-2 lg:mb-3">
-                                      <User className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-primary" />
-                                      <p className="text-[9px] font-black text-primary uppercase tracking-widest">Respuesta Administrativa</p>
-                                    </div>
-                                    <p className="text-sm lg:text-base text-foreground font-semibold leading-relaxed">{ticket.admin_notes}</p>
-                                  </motion.div>
-                                )}
-                                
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 pt-2 text-muted-foreground/60">
-                                  <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                                    <Calendar className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
-                                    {format(new Date(ticket.created_at), 'd MMM, yyyy', { locale: es })}
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                                    <Clock className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
-                                    ID: {ticket.id.slice(0, 8).toUpperCase()}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between lg:flex-col lg:items-end gap-4 w-full lg:w-auto lg:self-start border-t lg:border-none pt-4 lg:pt-0">
-                              {getStatusBadge(ticket.status)}
-                              <Button variant="ghost" size="sm" className="rounded-full text-[10px] font-bold lg:opacity-0 group-hover:opacity-100 transition-opacity p-0 h-auto lg:h-10 lg:px-4">
-                                Detalles <ArrowRight className="w-3 h-3 ml-1" />
-                              </Button>
-                            </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl ${config.bg} ${config.color} border ${config.border} flex items-center justify-center flex-shrink-0`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Ticket #{ticket.id.slice(0, 8).toUpperCase()}
+                            </span>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-xs font-semibold text-primary">
+                              {config.label}
+                            </span>
                           </div>
-                        </CardContent>
+                          <h3 className="font-semibold text-lg text-foreground mt-0.5 leading-snug">{ticket.subject}</h3>
+                        </div>
                       </div>
-                    </Card>
-                  </motion.div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {format(new Date(ticket.created_at), "d 'de' MMMM, yyyy", { locale: es })}
+                        </span>
+                        {getStatusBadge(ticket.status)}
+                      </div>
+                    </div>
+
+                    <p className="text-sm font-medium text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                      {ticket.description}
+                    </p>
+
+                    {/* Official Admin Response */}
+                    {ticket.admin_notes && (
+                      <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2">
+                        <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Respuesta de la administración</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-semibold text-foreground leading-relaxed">
+                          {ticket.admin_notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
-            </AnimatePresence>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );

@@ -2,17 +2,38 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { StatCard } from '@/components/ui/StatCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, Building, Plus, Loader2, Send, CheckCircle, Clock, AlertCircle, Pencil, Trash2, Eye, XCircle, FileText, Check } from 'lucide-react';
+import { 
+  DollarSign, 
+  Building, 
+  Plus, 
+  Loader2, 
+  Send, 
+  CheckCircle2, 
+  Clock, 
+  AlertCircle, 
+  Pencil, 
+  Trash2, 
+  Eye, 
+  XCircle, 
+  FileText, 
+  Check,
+  Search,
+  RefreshCw,
+  Sparkles,
+  Download,
+  Receipt
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getReceiptUrl, clearLocalReceipt } from '@/lib/receiptStorage';
+import { approvalUpdate, rejectionUpdate } from '@/lib/receiptReview';
 
 interface ApartmentType {
   id: string;
@@ -55,23 +76,25 @@ const ManageDues = () => {
   const [generating, setGenerating] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
+  // Filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'need_review' | 'pending' | 'paid'>('all');
+  const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
+  const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+
   // Modal para ver comprobante
   const [selectedReceiptDue, setSelectedReceiptDue] = useState<Due | null>(null);
 
-  // Apartment type form
+  // Tipos de apartamento
   const [showTypeDialog, setShowTypeDialog] = useState(false);
   const [editingType, setEditingType] = useState<ApartmentType | null>(null);
   const [typeName, setTypeName] = useState('');
   const [typeFee, setTypeFee] = useState('');
   const [typeDesc, setTypeDesc] = useState('');
 
-  // Generate dues form
+  // Generación masiva
   const [genMonth, setGenMonth] = useState(String(new Date().getMonth() + 1));
   const [genYear, setGenYear] = useState(String(new Date().getFullYear()));
-
-  // Filter
-  const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
-  const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
 
   const fetchData = async () => {
     setLoading(true);
@@ -82,7 +105,13 @@ const ManageDues = () => {
     ]);
 
     if (typesRes.data) setApartmentTypes(typesRes.data);
-    if (duesRes.data) setDues((duesRes.data as unknown as Due[]) || []);
+    if (duesRes.data) {
+      const list = ((duesRes.data as unknown as Due[]) || []).map(d => ({
+        ...d,
+        receipt_url: getReceiptUrl(d.id, d.receipt_url)
+      }));
+      setDues(list);
+    }
     if (profilesRes.data) setProfiles(profilesRes.data as Profile[]);
     setLoading(false);
   };
@@ -90,7 +119,6 @@ const ManageDues = () => {
   useEffect(() => { 
     fetchData(); 
 
-    // Realtime listener para reflejar alícuotas y comprobantes subidos
     const channel = supabase.channel('manage-dues-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dues' }, () => {
         fetchData();
@@ -107,33 +135,28 @@ const ManageDues = () => {
 
     const { error } = await supabase
       .from('dues')
-      .update({ 
-        status: 'paid', 
-        paid_at: now,
-        rejection_reason: null
-      })
+      .update(approvalUpdate(new Date(now)))
       .eq('id', due.id);
 
     if (error) {
-      toast.error('Error al aprobar alícuota: ' + error.message);
+      toast.error('Error al aprobar: ' + error.message);
       setActionLoadingId(null);
       return;
     }
 
-    // Notificar al residente
     try {
       await supabase.from('notifications').insert({
         user_id: due.user_id,
         title: `Alícuota aprobada - ${MONTHS[due.month - 1]} ${due.year}`,
-        message: `Tu comprobante de pago por $${Number(due.amount).toFixed(2)} ha sido verificado y aprobado con éxito.`,
+        message: `Tu comprobante por $${Number(due.amount).toFixed(2)} ha sido verificado con éxito.`,
         type: 'success',
         link: '/dues',
       });
     } catch (e) {
-      console.warn('Error sending notification:', e);
+      console.warn(e);
     }
 
-    toast.success('¡Alícuota aprobada con 1-click!');
+    toast.success('Alícuota aprobada.');
     if (selectedReceiptDue?.id === due.id) setSelectedReceiptDue(null);
     setActionLoadingId(null);
     fetchData();
@@ -142,33 +165,29 @@ const ManageDues = () => {
   // RECHAZAR RECIBO CON 1-CLICK
   const handleRejectDue = async (due: Due) => {
     setActionLoadingId(due.id);
+    clearLocalReceipt(due.id);
 
     const { error } = await supabase
       .from('dues')
-      .update({ 
-        status: 'pending',
-        receipt_url: null,
-        rejection_reason: 'Comprobante no válido o ilegible'
-      })
+      .update(rejectionUpdate())
       .eq('id', due.id);
 
     if (error) {
-      toast.error('Error al rechazar alícuota: ' + error.message);
+      toast.error('Error al rechazar: ' + error.message);
       setActionLoadingId(null);
       return;
     }
 
-    // Notificar al residente
     try {
       await supabase.from('notifications').insert({
         user_id: due.user_id,
         title: `Comprobante rechazado - ${MONTHS[due.month - 1]} ${due.year}`,
-        message: `El comprobante subido no pudo ser validado. Por favor sube una captura clara de tu transferencia.`,
+        message: `El comprobante no pudo ser validado. Por favor sube una captura clara.`,
         type: 'warning',
         link: '/dues',
       });
     } catch (e) {
-      console.warn('Error sending notification:', e);
+      console.warn(e);
     }
 
     toast.warning('Comprobante rechazado. Se notificó al residente.');
@@ -177,7 +196,6 @@ const ManageDues = () => {
     fetchData();
   };
 
-  // Reabrir cuota
   const handleReopenDue = async (dueId: string) => {
     setActionLoadingId(dueId);
     const { error } = await supabase.from('dues').update({ status: 'pending', paid_at: null }).eq('id', dueId);
@@ -190,7 +208,8 @@ const ManageDues = () => {
   };
 
   const handleSaveType = async () => {
-    if (!typeName || !typeFee) { toast.error('Nombre y monto son requeridos'); return; }
+    if (!typeName.trim() || !typeFee) { toast.error('Nombre y monto son requeridos'); return; }
+    if (!(Number(typeFee) >= 0)) { toast.error('La cuota mensual no puede ser negativa'); return; }
 
     if (editingType) {
       const { error } = await supabase.from('apartment_types').update({
@@ -200,7 +219,7 @@ const ManageDues = () => {
       toast.success('Tipo actualizado');
     } else {
       const { error } = await supabase.from('apartment_types').insert({
-        name: typeName, monthly_fee: Number(typeFee), description: typeDesc || null,
+        name: typeName.trim(), monthly_fee: Number(typeFee), description: typeDesc.trim() || null,
       });
       if (error) { toast.error('Error al crear'); return; }
       toast.success('Tipo creado');
@@ -214,7 +233,7 @@ const ManageDues = () => {
 
   const handleDeleteType = async (id: string) => {
     const { error } = await supabase.from('apartment_types').delete().eq('id', id);
-    if (error) { toast.error('Error al eliminar. Puede tener alícuotas asociadas.'); return; }
+    if (error) { toast.error('Error al eliminar'); return; }
     toast.success('Tipo eliminado');
     fetchData();
   };
@@ -254,21 +273,13 @@ const ManageDues = () => {
       }
     }
 
-    // In-app notifications
-    for (const resident of residentsWithTypes) {
-      const aptType = apartmentTypes.find(t => t.id === resident.apartment_type_id);
-      if (!aptType) continue;
-      await supabase.from('notifications').insert({
-        user_id: resident.id,
-        title: `Nueva alícuota - ${MONTHS[month - 1]} ${year}`,
-        message: `Se ha generado tu alícuota mensual por $${aptType.monthly_fee.toFixed(2)}.`,
-        type: 'info',
-        link: '/dues',
-      });
-    }
-
     setGenerating(false);
-    toast.success(`${created} alícuotas generadas, ${skipped} ya existían`);
+    // Con el índice único, las alícuotas ya emitidas ese mes se omiten (error 23505)
+    toast.success(
+      skipped > 0
+        ? `${created} alícuotas generadas; ${skipped} ya existían y se omitieron`
+        : `${created} alícuotas generadas`
+    );
     setFilterMonth(genMonth);
     setFilterYear(genYear);
     fetchData();
@@ -281,246 +292,354 @@ const ManageDues = () => {
 
   const getProfileApt = (userId: string) => {
     const p = profiles.find(pr => pr.id === userId);
-    return p?.apartment_number ? `Apt ${p.apartment_number}` : '-';
+    return p?.apartment_number ? `Apto ${p.apartment_number}` : '-';
   };
 
   const summary = dues.reduce((acc, d) => {
     acc.total += Number(d.amount);
     if (d.status === 'paid') acc.paid += Number(d.amount);
-    if (d.status === 'pending') acc.pending += Number(d.amount);
+    if (d.status === 'pending') {
+      acc.pending += Number(d.amount);
+      if (d.receipt_url) acc.needReview += 1;
+    }
     if (d.status === 'overdue') acc.overdue += Number(d.amount);
     return acc;
-  }, { total: 0, paid: 0, pending: 0, overdue: 0 });
+  }, { total: 0, paid: 0, pending: 0, overdue: 0, needReview: 0 });
+
+  const filteredDues = dues.filter(d => {
+    const name = getProfileName(d.user_id).toLowerCase();
+    const apt = getProfileApt(d.user_id).toLowerCase();
+    const matchesSearch = name.includes(searchQuery.toLowerCase()) || apt.includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (statusFilter === 'need_review') return d.status !== 'paid' && Boolean(d.receipt_url);
+    if (statusFilter === 'pending') return d.status !== 'paid' && !d.receipt_url;
+    if (statusFilter === 'paid') return d.status === 'paid';
+    return true;
+  });
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-primary" />
-            Gestión y Verificación de Alícuotas
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Comprueba recibos con 1-click, administra alícuotas mensuales y configura tipos de unidades
-          </p>
+      <div className="space-y-8 pb-16">
+        {/* Cabecera del Módulo */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary">
+                <Receipt className="w-3.5 h-3.5" />
+                Finanzas
+              </span>
+            </div>
+            <h1 className="text-[28px] sm:text-[32px] leading-tight font-semibold text-foreground tracking-tight font-display">
+              Alícuotas
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
+              Revisa los comprobantes de pago y administra las tarifas por tipo de departamento.
+            </p>
+          </div>
+
+          <Button 
+            variant="outline" 
+            onClick={fetchData} 
+            disabled={loading}
+            className="h-12 px-5 rounded-xl font-semibold gap-2 border border-border/80"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>Actualizar</span>
+          </Button>
         </div>
 
+        {/* Pestañas de Gestión */}
         <Tabs defaultValue="dues" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1 rounded-2xl">
-            <TabsTrigger value="dues" className="rounded-xl font-bold">Alícuotas y Recibos</TabsTrigger>
-            <TabsTrigger value="types" className="rounded-xl font-bold">Tipos de Apartamento</TabsTrigger>
-            <TabsTrigger value="generate" className="rounded-xl font-bold">Generar Masivo</TabsTrigger>
+          <TabsList className="bg-muted/60 p-1.5 rounded-2xl border border-border/80 h-auto">
+            <TabsTrigger value="dues" className="rounded-xl font-semibold text-xs sm:text-sm px-5 py-2.5">
+              Alícuotas y recibos
+            </TabsTrigger>
+            <TabsTrigger value="types" className="rounded-xl font-semibold text-xs sm:text-sm px-5 py-2.5">
+              Tipos de departamento
+            </TabsTrigger>
+            <TabsTrigger value="generate" className="rounded-xl font-semibold text-xs sm:text-sm px-5 py-2.5">
+              Emitir del mes
+            </TabsTrigger>
           </TabsList>
 
-          {/* DUES TAB */}
+          {/* TAB 1: ALÍCUOTAS Y VERIFICACIÓN */}
           <TabsContent value="dues" className="space-y-6">
-            {/* Filter */}
-            <div className="flex flex-wrap gap-4 items-center bg-card p-4 rounded-2xl border shadow-sm">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mes:</Label>
-                <Select value={filterMonth} onValueChange={setFilterMonth}>
-                  <SelectTrigger className="w-40 rounded-xl font-bold"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            
+            {/* Barra de Controles y Búsqueda */}
+            <div className="rounded-2xl bg-card p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 shadow-hairline">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="manage-dues-mes" className="text-xs font-medium text-muted-foreground">Mes:</Label>
+                  <Select value={filterMonth} onValueChange={setFilterMonth}>
+                    <SelectTrigger id="manage-dues-mes" className="w-36 h-11 rounded-xl font-semibold border border-border/80 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTHS.map((m, i) => <SelectItem key={i} value={String(i + 1)} className="font-semibold">{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="manage-dues-ano" className="text-xs font-medium text-muted-foreground">Año:</Label>
+                  <Input id="manage-dues-ano" 
+                    type="number" 
+                    value={filterYear} 
+                    onChange={e => setFilterYear(e.target.value)} 
+                    className="w-24 h-11 rounded-xl font-semibold border border-border/80 bg-background" 
+                  />
+                </div>
+
+                {/* Buscador por residente o departamento */}
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar residente o apto..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="pl-10 h-11 rounded-xl border border-border/80 bg-background text-sm font-semibold"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Año:</Label>
-                <Input type="number" value={filterYear} onChange={e => setFilterYear(e.target.value)} className="w-28 rounded-xl font-bold" />
+
+              {/* Filtro rápido por estado */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-muted/60 p-1 rounded-xl border border-border/60">
+                <Button
+                  variant={statusFilter === 'all' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setStatusFilter('all')}
+                  className="rounded-lg text-xs font-semibold h-9"
+                >
+                  Todos ({dues.length})
+                </Button>
+                <Button
+                  variant={statusFilter === 'need_review' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setStatusFilter('need_review')}
+                  className={`rounded-lg text-xs font-semibold h-9 gap-1.5 ${
+                    summary.needReview > 0 ? 'bg-amber-500 text-white hover:bg-amber-600' : ''
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Por verificar ({summary.needReview})
+                </Button>
+                <Button
+                  variant={statusFilter === 'paid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setStatusFilter('paid')}
+                  className="rounded-lg text-xs font-semibold h-9"
+                >
+                  Pagadas
+                </Button>
               </div>
             </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <StatCard title="Total Generado" value={`$${summary.total.toFixed(2)}`} icon={DollarSign} variant="default" />
-              <StatCard title="Cobrado" value={`$${summary.paid.toFixed(2)}`} icon={CheckCircle} variant="success" />
-              <StatCard title="Pendiente" value={`$${summary.pending.toFixed(2)}`} icon={Clock} variant="warning" />
-              <StatCard title="Vencido" value={`$${summary.overdue.toFixed(2)}`} icon={AlertCircle} variant="destructive" />
+            {/* Métricas del Período Seleccionado */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 rounded-2xl bg-card shadow-hairline">
+                <p className="text-xs font-medium text-muted-foreground">Total emitido</p>
+                <p className="text-2xl sm:text-3xl font-semibold text-foreground font-display mt-1">${summary.total.toFixed(2)}</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 shadow-sm">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Cobrado y verificado</p>
+                <p className="text-2xl sm:text-3xl font-semibold text-emerald-800 dark:text-emerald-300 font-display mt-1">${summary.paid.toFixed(2)}</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 shadow-sm">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Por revisar</p>
+                <p className="text-2xl sm:text-3xl font-semibold text-amber-800 dark:text-amber-300 font-display mt-1">{summary.needReview}</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-card shadow-hairline">
+                <p className="text-xs font-medium text-muted-foreground">Por cobrar total</p>
+                <p className="text-2xl sm:text-3xl font-semibold text-foreground font-display mt-1">${summary.pending.toFixed(2)}</p>
+              </div>
             </div>
 
-            {/* Dues Table */}
-            <Card className="card-elevated border-none shadow-xl overflow-hidden">
-              <CardHeader className="bg-muted/20 border-b">
-                <CardTitle className="text-xl font-black">
-                  Alícuotas - {MONTHS[Number(filterMonth) - 1]} {filterYear}
-                </CardTitle>
-                <CardDescription>
-                  Verifica comprobantes bancarios y aprueba o rechaza pagos con un solo click
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {loading ? (
-                  <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-                ) : dues.length === 0 ? (
-                  <p className="text-center py-16 text-muted-foreground font-medium">No hay alícuotas registradas para este período</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border/50 bg-muted/30">
-                          <th className="text-left py-4 px-6 text-xs font-black text-muted-foreground uppercase tracking-wider">Residente</th>
-                          <th className="text-left py-4 px-6 text-xs font-black text-muted-foreground uppercase tracking-wider">Apto</th>
-                          <th className="text-left py-4 px-6 text-xs font-black text-muted-foreground uppercase tracking-wider">Monto</th>
-                          <th className="text-left py-4 px-6 text-xs font-black text-muted-foreground uppercase tracking-wider">Estado</th>
-                          <th className="text-left py-4 px-6 text-xs font-black text-muted-foreground uppercase tracking-wider">Comprobante</th>
-                          <th className="text-left py-4 px-6 text-xs font-black text-muted-foreground uppercase tracking-wider">Verificación 1-Click</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dues.map(due => {
-                          const isLoading = actionLoadingId === due.id;
-                          return (
-                            <tr key={due.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                              <td className="py-4 px-6 font-bold text-foreground">
+            {/* Tabla de Alícuotas con Acción */}
+            <div className="rounded-2xl bg-card overflow-hidden shadow-hairline">
+              <div className="p-5 sm:p-6 border-b border-border/80 bg-muted/30 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg text-foreground font-display">
+                    Alícuotas de {MONTHS[Number(filterMonth) - 1]} {filterYear}
+                  </h3>
+                  <p className="text-xs font-medium text-muted-foreground mt-0.5">
+                    Mostrando {filteredDues.length} registros
+                  </p>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="py-20 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
+              ) : filteredDues.length === 0 ? (
+                <div className="py-20 text-center text-muted-foreground font-semibold">
+                  No se encontraron alícuotas para el período o búsqueda especificada.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border/80 bg-muted/40">
+                        <th className="text-left py-4 px-6 text-xs font-medium text-muted-foreground">Residente</th>
+                        <th className="text-left py-4 px-6 text-xs font-medium text-muted-foreground">Unidad</th>
+                        <th className="text-left py-4 px-6 text-xs font-medium text-muted-foreground">Cuota</th>
+                        <th className="text-left py-4 px-6 text-xs font-medium text-muted-foreground">Estado</th>
+                        <th className="text-left py-4 px-6 text-xs font-medium text-muted-foreground">Comprobante</th>
+                        <th className="text-left py-4 px-6 text-xs font-medium text-muted-foreground">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDues.map((due) => {
+                        const isLoading = actionLoadingId === due.id;
+                        return (
+                          <tr key={due.id} className="border-b border-border/60 hover:bg-muted/20 transition-colors">
+                            <td className="py-4 px-6">
+                              <p className="font-semibold text-base text-foreground leading-tight font-display">
                                 {getProfileName(due.user_id)}
-                              </td>
-                              <td className="py-4 px-6 font-medium text-muted-foreground">
-                                {getProfileApt(due.user_id)}
-                              </td>
-                              <td className="py-4 px-6 font-black text-lg text-foreground">
-                                ${Number(due.amount).toFixed(2)}
-                              </td>
-                              <td className="py-4 px-6">
-                                {due.status === 'paid' && <StatusBadge status="success">Pagada</StatusBadge>}
-                                {due.status === 'pending' && (
-                                  due.receipt_url ? (
-                                    <StatusBadge status="warning">En Revisión</StatusBadge>
-                                  ) : (
-                                    <StatusBadge status="warning">Pendiente</StatusBadge>
-                                  )
-                                )}
-                                {due.status === 'overdue' && <StatusBadge status="destructive">Vencida</StatusBadge>}
-                              </td>
-
-                              {/* Columna Comprobante */}
-                              <td className="py-4 px-6">
-                                {due.receipt_url ? (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setSelectedReceiptDue(due)}
-                                    className="gap-1.5 rounded-xl text-xs font-bold border-primary/30 text-primary hover:bg-primary/10"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    Ver Recibo
-                                  </Button>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground/60 font-medium italic">
-                                    Sin comprobante
+                              </p>
+                            </td>
+                            <td className="py-4 px-6 font-semibold text-muted-foreground">
+                              {getProfileApt(due.user_id)}
+                            </td>
+                            <td className="py-4 px-6 font-semibold text-lg text-foreground font-display tabular-nums">
+                              ${Number(due.amount).toFixed(2)}
+                            </td>
+                            <td className="py-4 px-6">
+                              {due.status === 'paid' && <StatusBadge status="success">Pagada</StatusBadge>}
+                              {due.status === 'pending' && (
+                                due.receipt_url ? (
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/30 animate-pulse">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    Por revisar
                                   </span>
-                                )}
-                              </td>
+                                ) : (
+                                  <StatusBadge status="warning">Pendiente</StatusBadge>
+                                )
+                              )}
+                              {due.status === 'overdue' && <StatusBadge status="destructive">Vencida</StatusBadge>}
+                            </td>
 
-                              {/* Columna Acciones 1-Click */}
-                              <td className="py-4 px-6">
-                                <div className="flex items-center gap-2">
-                                  {due.status !== 'paid' ? (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        disabled={isLoading}
-                                        onClick={() => handleApproveDue(due)}
-                                        className="gap-1.5 rounded-xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
-                                      >
-                                        {isLoading ? (
-                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        ) : (
-                                          <Check className="w-3.5 h-3.5" />
-                                        )}
-                                        Aprobar
-                                      </Button>
+                            <td className="py-4 px-6">
+                              {due.receipt_url ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedReceiptDue(due)}
+                                  className="gap-2 rounded-xl text-xs font-semibold h-10 px-4 border border-primary/40 text-primary hover:bg-primary/10 shadow-sm"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  Ver recibo
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground/60 font-medium italic">Sin comprobante</span>
+                              )}
+                            </td>
 
-                                      {due.receipt_url && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          disabled={isLoading}
-                                          onClick={() => handleRejectDue(due)}
-                                          className="gap-1 rounded-xl font-bold text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 active:scale-95"
-                                        >
-                                          <XCircle className="w-3.5 h-3.5" />
-                                          Rechazar
-                                        </Button>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                                        <CheckCircle className="w-3.5 h-3.5" />
-                                        Verificado
-                                      </span>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-2">
+                                {due.status !== 'paid' ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      disabled={isLoading}
+                                      onClick={() => handleApproveDue(due)}
+                                      className="h-10 px-4 gap-1.5 rounded-xl font-semibold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                                    >
+                                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                      Aprobar
+                                    </Button>
+
+                                    {due.receipt_url && (
                                       <Button
                                         variant="ghost"
                                         size="sm"
                                         disabled={isLoading}
-                                        onClick={() => handleReopenDue(due.id)}
-                                        className="text-[10px] text-muted-foreground hover:text-foreground h-7 px-2 font-bold"
+                                        onClick={() => handleRejectDue(due)}
+                                        className="h-10 px-3 gap-1 rounded-xl font-semibold text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10"
                                       >
-                                        Reabrir
+                                        <XCircle className="w-4 h-4" />
+                                        Rechazar
                                       </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/30">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      Verificado
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      disabled={isLoading}
+                                      onClick={() => handleReopenDue(due.id)}
+                                      className="text-xs text-muted-foreground hover:text-foreground h-8 px-2 font-medium"
+                                    >
+                                      Reabrir
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
-          {/* APARTMENT TYPES TAB */}
+          {/* TAB 2: TIPOS DE APARTAMENTO */}
           <TabsContent value="types" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-black">Tipos de Apartamento</h2>
-              <Dialog open={showTypeDialog} onOpenChange={(open) => {
-                setShowTypeDialog(open);
-                if (!open) { setEditingType(null); setTypeName(''); setTypeFee(''); setTypeDesc(''); }
-              }}>
+            <div className="flex justify-between items-center rounded-2xl bg-card p-6 shadow-hairline">
+              <div>
+                <h3 className="text-2xl font-semibold text-foreground font-display">Tarifas por tipo de departamento</h3>
+                <p className="text-xs font-medium text-muted-foreground mt-0.5">Establece el valor mensual de alícuotas según el tipo de departamento</p>
+              </div>
+
+              <Dialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
                 <DialogTrigger asChild>
-                  <Button className="rounded-xl font-bold"><Plus className="w-4 h-4 mr-2" />Agregar Tipo</Button>
+                  <Button className="h-12 px-6 rounded-xl font-semibold gap-2 shadow-sm">
+                    <Plus className="w-4 h-4" /> Nuevo modelo
+                  </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-2xl">
+                <DialogContent className="rounded-2xl sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>{editingType ? 'Editar' : 'Nuevo'} Tipo de Apartamento</DialogTitle>
-                    <DialogDescription>Define el nombre y la cuota mensual de mantenimiento</DialogDescription>
+                    <DialogTitle className="text-xl font-semibold font-display">
+                      {editingType ? 'Editar' : 'Nuevo'} Tipo de Apartamento
+                    </DialogTitle>
+                    <DialogDescription>Define el nombre del modelo y su cuota mensual</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 pt-2">
-                    <div>
-                      <Label>Nombre *</Label>
-                      <Input value={typeName} onChange={e => setTypeName(e.target.value)} placeholder="Ej: 2 Habitaciones" className="rounded-xl" />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="manage-dues-nombre-del-tipo" className="text-xs font-medium text-muted-foreground">Nombre del tipo *</Label>
+                      <Input id="manage-dues-nombre-del-tipo" value={typeName} onChange={e => setTypeName(e.target.value)} placeholder="Ej: 3 Dormitorios Penthouse" className="h-12 rounded-xl font-semibold border border-border/80" />
                     </div>
-                    <div>
-                      <Label>Cuota Mensual ($) *</Label>
-                      <Input type="number" value={typeFee} onChange={e => setTypeFee(e.target.value)} placeholder="50.00" className="rounded-xl" />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="manage-dues-cuota-mensual" className="text-xs font-medium text-muted-foreground">Cuota mensual ($) *</Label>
+                      <Input id="manage-dues-cuota-mensual" type="number" value={typeFee} onChange={e => setTypeFee(e.target.value)} placeholder="65.00" className="h-12 rounded-xl font-semibold border border-border/80" />
                     </div>
-                    <div>
-                      <Label>Descripción (opcional)</Label>
-                      <Input value={typeDesc} onChange={e => setTypeDesc(e.target.value)} placeholder="Descripción del tipo" className="rounded-xl" />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="manage-dues-descripcion" className="text-xs font-medium text-muted-foreground">Descripción</Label>
+                      <Input id="manage-dues-descripcion" value={typeDesc} onChange={e => setTypeDesc(e.target.value)} placeholder="Metraje o ubicación" className="h-12 rounded-xl font-medium border border-border/80" />
                     </div>
-                    <Button onClick={handleSaveType} className="w-full rounded-xl font-bold">
-                      {editingType ? 'Actualizar' : 'Crear'}
+                    <Button onClick={handleSaveType} className="w-full h-12 rounded-xl font-semibold text-base mt-2 shadow-sm">
+                      {editingType ? 'Actualizar modelo' : 'Guardar modelo'}
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {apartmentTypes.map(type => (
-                <Card key={type.id} className="card-elevated border-none shadow-md">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
+                <div key={type.id} className="rounded-2xl bg-card p-6 flex flex-col justify-between shadow-hairline">
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
                       <div>
-                        <CardTitle className="text-lg flex items-center gap-2 font-black">
-                          <Building className="w-5 h-5 text-primary" />{type.name}
-                        </CardTitle>
-                        {type.description && <CardDescription>{type.description}</CardDescription>}
+                        <h4 className="text-xl font-semibold text-foreground font-display">{type.name}</h4>
+                        {type.description && <p className="text-xs text-muted-foreground font-medium mt-1">{type.description}</p>}
                       </div>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => {
@@ -529,53 +648,67 @@ const ManageDues = () => {
                           setTypeFee(String(type.monthly_fee));
                           setTypeDesc(type.description || '');
                           setShowTypeDialog(true);
-                        }}><Pencil className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteType(type.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
+                        }} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteType(type.id)} className="h-8 w-8 text-rose-500 hover:text-rose-600">
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-black text-primary">${Number(type.monthly_fee).toFixed(2)}<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
-                  </CardContent>
-                </Card>
+                  </div>
+
+                  <div className="pt-4 border-t border-border/60 mt-4 flex items-baseline justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">Cuota ordinaria</span>
+                    <p className="text-3xl font-semibold text-primary font-display">${Number(type.monthly_fee).toFixed(2)}<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
+                  </div>
+                </div>
               ))}
-              {apartmentTypes.length === 0 && (
-                <p className="text-muted-foreground col-span-full text-center py-8">No hay tipos de apartamento. Crea uno para comenzar.</p>
-              )}
             </div>
           </TabsContent>
 
-          {/* GENERATE TAB */}
+          {/* TAB 3: GENERACIÓN MASIVA */}
           <TabsContent value="generate" className="space-y-6">
-            <Card className="card-elevated border-none shadow-xl max-w-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-black"><Send className="w-5 h-5 text-primary" />Generar Alícuotas Mensuales</CardTitle>
-                <CardDescription>Genera automáticamente las alícuotas para todos los residentes con tipo de apartamento asignado</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="rounded-2xl bg-card p-8 max-w-xl space-y-6 shadow-hairline">
+              <div className="flex items-center gap-3 pb-4 border-b border-border/60">
+                <div className="flex items-center justify-center text-muted-foreground">
+                  <Send className="w-6 h-6" />
+                </div>
                 <div>
-                  <Label>Mes</Label>
+                  <h3 className="text-2xl font-semibold text-foreground font-display">Emitir alícuotas del mes</h3>
+                  <p className="text-xs font-medium text-muted-foreground">Genera las cuotas del mes para todos los departamentos con tipo asignado</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="manage-dues-mes-2" className="text-xs font-medium text-muted-foreground">Mes</Label>
                   <Select value={genMonth} onValueChange={setGenMonth}>
-                    <SelectTrigger className="rounded-xl font-bold"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="manage-dues-mes-2" className="h-12 rounded-xl font-semibold border border-border/80 bg-background"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {MONTHS.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
+                      {MONTHS.map((m, i) => <SelectItem key={i} value={String(i + 1)} className="font-semibold">{m}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Año</Label>
-                  <Input type="number" value={genYear} onChange={e => setGenYear(e.target.value)} className="rounded-xl font-bold" />
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="manage-dues-ano-2" className="text-xs font-medium text-muted-foreground">Año</Label>
+                  <Input id="manage-dues-ano-2" type="number" value={genYear} onChange={e => setGenYear(e.target.value)} className="h-12 rounded-xl font-semibold border border-border/80 bg-background" />
                 </div>
-                <p className="text-sm text-muted-foreground font-medium">
-                  {profiles.filter(p => p.apartment_type_id).length} residentes con tipo de unidad asignado
-                </p>
-                <Button onClick={handleGenerateDues} disabled={generating} className="w-full rounded-xl font-black h-12 shadow-lg">
-                  {generating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generando...</> : 'Generar Alícuotas'}
+
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 text-xs text-muted-foreground font-medium">
+                  Se emitirá la cuota correspondiente a los residentes registrados que tengan asignado un tipo de departamento.
+                </div>
+
+                <Button 
+                  onClick={handleGenerateDues} 
+                  disabled={generating} 
+                  className="w-full h-14 rounded-2xl font-semibold text-base shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                >
+                  {generating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : 'Emitir alícuotas del mes'}
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -583,29 +716,29 @@ const ManageDues = () => {
         <Dialog open={!!selectedReceiptDue} onOpenChange={(open) => !open && setSelectedReceiptDue(null)}>
           <DialogContent className="max-w-2xl rounded-2xl p-6">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl font-black">
+              <DialogTitle className="flex items-center gap-2 text-xl font-semibold font-display text-foreground">
                 <FileText className="w-5 h-5 text-primary" />
                 Comprobante de Pago — {selectedReceiptDue ? getProfileName(selectedReceiptDue.user_id) : ''}
               </DialogTitle>
-              <DialogDescription>
-                {selectedReceiptDue ? `${MONTHS[selectedReceiptDue.month - 1]} ${selectedReceiptDue.year} — Monto: $${Number(selectedReceiptDue.amount).toFixed(2)}` : ''}
+              <DialogDescription className="font-semibold">
+                {selectedReceiptDue ? `${getProfileApt(selectedReceiptDue.user_id)} · ${MONTHS[selectedReceiptDue.month - 1]} ${selectedReceiptDue.year} · Monto: $${Number(selectedReceiptDue.amount).toFixed(2)}` : ''}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-4 flex justify-center bg-black/5 dark:bg-black/30 rounded-2xl p-4 overflow-hidden max-h-[65vh]">
+            <div className="mt-4 flex justify-center bg-black/5 dark:bg-black/40 rounded-2xl p-4 overflow-hidden max-h-[65vh]">
               {selectedReceiptDue?.receipt_url?.endsWith('.pdf') ? (
                 <iframe src={selectedReceiptDue.receipt_url} className="w-full h-96 rounded-xl" title="Comprobante PDF" />
               ) : (
                 <img 
                   src={selectedReceiptDue?.receipt_url || ''} 
-                  alt="Comprobante" 
+                  alt="Foto del Comprobante" 
                   className="max-h-[55vh] max-w-full object-contain rounded-xl shadow-lg" 
                 />
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-border/50">
-              <Button variant="outline" onClick={() => setSelectedReceiptDue(null)} className="rounded-xl font-bold">
+            <div className="flex items-center justify-between pt-4 border-t border-border/80 mt-4">
+              <Button variant="outline" onClick={() => setSelectedReceiptDue(null)} className="h-11 px-5 rounded-xl font-semibold">
                 Cerrar
               </Button>
 
@@ -615,7 +748,7 @@ const ManageDues = () => {
                     variant="ghost"
                     onClick={() => handleRejectDue(selectedReceiptDue)}
                     disabled={actionLoadingId === selectedReceiptDue.id}
-                    className="rounded-xl font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                    className="h-11 px-4 rounded-xl font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-500/10"
                   >
                     <XCircle className="w-4 h-4 mr-1.5" />
                     Rechazar
@@ -623,14 +756,10 @@ const ManageDues = () => {
                   <Button 
                     onClick={() => handleApproveDue(selectedReceiptDue)}
                     disabled={actionLoadingId === selectedReceiptDue.id}
-                    className="rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
+                    className="h-11 px-6 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   >
-                    {actionLoadingId === selectedReceiptDue.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
-                    ) : (
-                      <Check className="w-4 h-4 mr-1.5" />
-                    )}
-                    Aprobar Ahora
+                    {actionLoadingId === selectedReceiptDue.id ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Check className="w-4 h-4 mr-1.5" />}
+                    Aprobar
                   </Button>
                 </div>
               )}

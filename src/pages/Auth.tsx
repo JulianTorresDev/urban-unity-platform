@@ -1,18 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Building2, Loader2, AlertCircle, ShieldAlert, Lock } from 'lucide-react';
+import { Building2, Loader2, AlertCircle, ShieldAlert, Receipt, CalendarDays, QrCode } from 'lucide-react';
 import { useTheme } from '@/lib/theme';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
-import { toast } from 'sonner';
+import gsap from 'gsap';
+import { SplitText } from 'gsap/SplitText';
+import { useGSAP } from '@gsap/react';
 
-const emailSchema = z.string().email('Por favor ingresa un correo válido');
-const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres');
+gsap.registerPlugin(useGSAP, SplitText);
+
+const emailSchema = z.string().email('Ingresa un correo electrónico válido.');
+const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.');
+
+const highlights = [
+  { icon: Receipt, title: 'Alícuotas al día', text: 'Consulta tu estado de cuenta y sube tu comprobante en segundos.' },
+  { icon: CalendarDays, title: 'Áreas comunes', text: 'Reserva el salón o la zona BBQ sin cruces de horario.' },
+  { icon: QrCode, title: 'Acceso con QR', text: 'Tu llave digital para la garita, siempre en tu teléfono.' },
+];
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -21,88 +30,67 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
-  
+
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const rootRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
-  // Vistas: login | forgot (pedir correo) | recovery (definir nueva contraseña)
-  const [view, setView] = useState<'login' | 'forgot' | 'recovery'>('login');
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Entrada única de la pantalla de acceso: bloques escalonados cada 100 ms y titular revelado por líneas.
+  // Se omite por completo con "reducir movimiento".
+  useGSAP(
+    () => {
+      if (!rootRef.current) return;
+      const mm = gsap.matchMedia();
+
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.from('[data-enter]', {
+          opacity: 0,
+          y: 12,
+          filter: 'blur(4px)',
+          duration: 0.6,
+          ease: 'power3.out',
+          stagger: 0.1,
+          clearProps: 'opacity,transform,filter',
+        });
+      });
+
+      mm.add('(min-width: 1024px) and (prefers-reduced-motion: no-preference)', () => {
+        if (headingRef.current) {
+          SplitText.create(headingRef.current, {
+            type: 'lines',
+            mask: 'lines',
+            autoSplit: true,
+            onSplit: (self) =>
+              gsap.from(self.lines, { yPercent: 100, duration: 1, ease: 'expo.out', stagger: 0.12, delay: 0.15 }),
+          });
+        }
+        gsap.from('[data-reveal]', {
+          opacity: 0,
+          y: 12,
+          filter: 'blur(4px)',
+          duration: 0.6,
+          ease: 'power3.out',
+          stagger: 0.1,
+          delay: 0.5,
+          clearProps: 'opacity,transform,filter',
+        });
+      });
+    },
+    { scope: rootRef, dependencies: [loading] }
+  );
 
   useEffect(() => {
-    // Al llegar desde el enlace de recuperación del correo, Supabase emite este evento
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setView('recovery');
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (user && !loading && !isBlocked && view === 'login') {
+    if (user && !loading && !isBlocked) {
       navigate('/dashboard');
     }
-  }, [user, loading, navigate, isBlocked, view]);
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      emailSchema.parse(forgotEmail);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors[0].message);
-        return;
-      }
-    }
-    setIsSubmitting(true);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/auth`,
-    });
-    setIsSubmitting(false);
-    if (resetError) {
-      setError(resetError.message);
-    } else {
-      toast.success('Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.');
-      setView('login');
-    }
-  };
-
-  const handleRecovery = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      passwordSchema.parse(newPassword);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors[0].message);
-        return;
-      }
-    }
-    if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-    setIsSubmitting(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-    setIsSubmitting(false);
-    if (updateError) {
-      setError(updateError.message);
-    } else {
-      toast.success('Contraseña actualizada correctamente');
-      setView('login');
-      navigate('/dashboard');
-    }
-  };
+  }, [user, loading, navigate, isBlocked]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsBlocked(false);
-    
+
     try {
       emailSchema.parse(loginEmail);
       passwordSchema.parse(loginPassword);
@@ -112,14 +100,14 @@ const Auth = () => {
         return;
       }
     }
-    
+
     setIsSubmitting(true);
     const { error: signInError } = await signIn(loginEmail, loginPassword);
-    
+
     if (signInError) {
       setIsSubmitting(false);
       if (signInError.message.includes('Invalid login credentials')) {
-        setError('Correo o contraseña incorrectos. Por favor intenta de nuevo.');
+        setError('El correo o la contraseña no son correctos.');
       } else {
         setError(signInError.message);
       }
@@ -150,201 +138,138 @@ const Auth = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-      <div className="w-full max-w-md animate-fade-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 shadow-2xl border-4 border-white overflow-hidden">
+    <div ref={rootRef} className="min-h-[100dvh] grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] bg-card">
+      {/* Columna del formulario */}
+      <div className="flex flex-col px-6 sm:px-10 py-8">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
+            style={{ backgroundColor: settings.logo_url ? 'transparent' : settings.primary_color || '#0071e3' }}
+          >
             {settings.logo_url ? (
-              <img src={settings.logo_url} alt="Logo" className="w-full h-full object-cover" />
+              <img src={settings.logo_url} alt="" className="w-full h-full object-contain" />
             ) : (
-              <Building2 className="w-10 h-10 text-white" />
+              <Building2 className="w-[18px] h-[18px] text-white" strokeWidth={1.75} />
             )}
           </div>
-          <h1 className="font-display text-4xl font-black text-foreground tracking-tight">{settings.company_name}</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Gestión Residencial Inteligente</p>
+          <span className="text-[15px] font-semibold tracking-tight">{settings.company_name}</span>
         </div>
 
-        {/* Blocked User Banner */}
-        {isBlocked && (
-          <Card className="border-none shadow-2xl bg-rose-50 mb-6 overflow-hidden">
-            <div className="h-2 bg-rose-500" />
-            <CardContent className="p-8 text-center space-y-4">
-              <div className="w-20 h-20 bg-rose-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-rose-200">
-                <ShieldAlert className="w-10 h-10 text-white" />
+        <div className="flex-1 flex items-center justify-center py-12">
+          <div className="w-full max-w-[380px]">
+            <h1 data-enter className="text-[32px] leading-tight font-semibold tracking-tight">Inicia sesión</h1>
+            <p data-enter className="mt-2 text-[15px] text-muted-foreground">
+              Usa el correo que registraste en la administración del conjunto.
+            </p>
+
+            {isBlocked && (
+              <div role="alert" className="mt-8 rounded-xl bg-destructive/[0.06] border border-destructive/20 p-4 flex gap-3">
+                <ShieldAlert className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Tu acceso está suspendido</p>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                    La cuenta se suspendió por alícuotas pendientes. Comunícate con la administración para reactivarla.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-2xl font-black text-rose-900">Acceso Suspendido</h3>
-                <p className="text-rose-700/80 font-medium mt-2 leading-relaxed">
-                  Tu cuenta ha sido suspendida por morosidad en el pago de alícuotas. 
-                  Por favor contacta a la administración del conjunto para regularizar tu situación.
+            )}
+
+            <form data-enter onSubmit={handleLogin} className="mt-8 space-y-5" noValidate>
+              <div className="space-y-2">
+                <Label htmlFor="login-email" className="text-sm font-medium">
+                  Correo electrónico
+                </Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder="nombre@correo.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  aria-invalid={Boolean(error)}
+                  required
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="login-password" className="text-sm font-medium">
+                  Contraseña
+                </Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  aria-invalid={Boolean(error)}
+                  required
+                  className="h-12"
+                />
+              </div>
+
+              {error && (
+                <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <span>{error}</span>
                 </p>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest">
-                <Lock className="w-3.5 h-3.5" />
-                Código de acceso QR deshabilitado
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )}
 
-        <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-md">
-          <CardContent className="p-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-black text-foreground">
-                {view === 'login' && 'Iniciar Sesión'}
-                {view === 'forgot' && 'Recuperar Contraseña'}
-                {view === 'recovery' && 'Nueva Contraseña'}
-              </h2>
-              <p className="text-muted-foreground text-sm font-medium mt-1">
-                {view === 'login' && 'Ingresa con las credenciales proporcionadas por tu administración'}
-                {view === 'forgot' && 'Te enviaremos un enlace de restablecimiento a tu correo'}
-                {view === 'recovery' && 'Define tu nueva contraseña para continuar'}
-              </p>
-            </div>
+              <Button type="submit" size="lg" className="w-full h-12" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Verificando…
+                  </>
+                ) : (
+                  'Continuar'
+                )}
+              </Button>
+            </form>
 
-            {error && (
-              <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-sm text-destructive font-medium">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+            <p data-enter className="mt-8 text-sm text-muted-foreground leading-relaxed">
+              ¿No puedes ingresar? Acércate a la garita o escribe a la administración para recuperar tu acceso.
+            </p>
+          </div>
+        </div>
 
-            {view === 'login' && (
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Correo Electrónico</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="tu@correo.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
-                    className="h-14 bg-muted/30 border-none rounded-2xl px-5 font-medium"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Contraseña</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                    className="h-14 bg-muted/30 border-none rounded-2xl px-5 font-medium"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full h-14 rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all font-black text-lg active:scale-95"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Verificando...
-                    </>
-                  ) : (
-                    'Ingresar'
-                  )}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => { setError(null); setView('forgot'); }}
-                  className="w-full text-center text-sm font-bold text-primary hover:underline"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </form>
-            )}
-
-            {view === 'forgot' && (
-              <form onSubmit={handleForgotPassword} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="forgot-email" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Correo Electrónico</Label>
-                  <Input
-                    id="forgot-email"
-                    type="email"
-                    placeholder="tu@correo.com"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    required
-                    className="h-14 bg-muted/30 border-none rounded-2xl px-5 font-medium"
-                  />
-                </div>
-                <Button type="submit" className="w-full h-14 rounded-2xl font-black text-lg" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    'Enviar Enlace de Recuperación'
-                  )}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => { setError(null); setView('login'); }}
-                  className="w-full text-center text-sm font-bold text-muted-foreground hover:text-primary hover:underline"
-                >
-                  Volver a iniciar sesión
-                </button>
-              </form>
-            )}
-
-            {view === 'recovery' && (
-              <form onSubmit={handleRecovery} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nueva Contraseña</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    className="h-14 bg-muted/30 border-none rounded-2xl px-5 font-medium"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Confirmar Contraseña</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    className="h-14 bg-muted/30 border-none rounded-2xl px-5 font-medium"
-                  />
-                </div>
-                <Button type="submit" className="w-full h-14 rounded-2xl font-black text-lg" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    'Guardar Nueva Contraseña'
-                  )}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-xs text-muted-foreground mt-8 font-medium">
-          ¿No tienes cuenta? Solicita acceso a la administración de tu conjunto residencial.
-        </p>
+        <p className="text-xs text-muted-foreground">Conjunto Habitacional Gissel's 2 · Llano Grande, Quito</p>
       </div>
+
+      {/* Panel editorial (solo escritorio) */}
+      <aside className="hidden lg:flex relative flex-col justify-between bg-[#0b0b0c] text-white p-14 xl:p-16">
+
+        <p className="text-sm text-white/60">90 viviendas · Una sola plataforma</p>
+
+        <div className="max-w-md">
+          <h2 ref={headingRef} className="text-[44px] xl:text-[52px] leading-[1.05] font-semibold tracking-[-0.03em] text-white">
+            Tu conjunto,
+            <br />
+            <span className="text-white/50">en orden.</span>
+          </h2>
+
+          <ul className="mt-12 divide-y divide-white/10 border-y border-white/10">
+            {highlights.map(({ icon: Icon, title, text }) => (
+              <li key={title} data-reveal className="flex gap-4 py-5">
+                <Icon className="w-5 h-5 text-white/70 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                <div>
+                  <p className="text-[15px] font-medium text-white">{title}</p>
+                  <p className="mt-1 text-sm text-white/55 leading-relaxed">{text}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-xs text-white/55">Pagos por transferencia validados por la administración.</p>
+      </aside>
     </div>
   );
 };

@@ -1,38 +1,41 @@
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CountUp } from '@/components/motion/CountUp';
 
 interface StatCardProps {
   title: string;
   value: string | number;
+  /** Formato para valores numéricos; las cifras numéricas cuentan hasta su valor al cargar. */
+  format?: (n: number) => string;
   subtitle?: string;
   icon: LucideIcon;
   trend?: 'up' | 'down' | 'neutral';
   variant?: 'default' | 'success' | 'warning' | 'destructive' | 'primary';
+  className?: string;
 }
 
-const variantStyles = {
-  primary: 'bg-primary/10 text-primary',
-  default: 'bg-primary/10 text-primary',
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/10 text-warning',
-  destructive: 'bg-destructive/10 text-destructive',
+// El color se reserva para el icono: la cifra es la protagonista, en el color del texto
+const iconTone = {
+  primary: 'text-primary',
+  default: 'text-muted-foreground',
+  success: 'text-success',
+  warning: 'text-warning',
+  destructive: 'text-destructive',
 };
 
-export function StatCard({ title, value, subtitle, icon: Icon, variant = 'default' }: StatCardProps) {
+export function StatCard({ title, value, format, subtitle, icon: Icon, variant = 'default', className }: StatCardProps) {
   return (
-    <div className="stat-card animate-fade-in">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-display font-bold mt-1">{value}</p>
-          {subtitle && (
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
-          )}
-        </div>
-        <div className={cn('p-3 rounded-xl', variantStyles[variant])}>
-          <Icon className="w-6 h-6" />
-        </div>
+    <div className={cn('surface p-5', className)}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
+        <Icon className={cn('w-[18px] h-[18px] flex-shrink-0', iconTone[variant])} strokeWidth={1.75} />
       </div>
+      <p className="mt-3 text-[28px] leading-none font-semibold tracking-tight tabular-nums text-foreground">
+        {typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
+      </p>
+      {subtitle && (
+        <p className="mt-2 text-sm text-muted-foreground leading-snug">{subtitle}</p>
+      )}
     </div>
   );
 }

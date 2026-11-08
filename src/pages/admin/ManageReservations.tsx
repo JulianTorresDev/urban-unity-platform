@@ -1,17 +1,36 @@
 import { useEffect, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CalendarDays, Loader2, TreesIcon, Building, Car, Check, X, Calendar as CalendarIcon, DollarSign } from 'lucide-react';
+import { 
+  CalendarDays, 
+  Loader2, 
+  TreesIcon, 
+  Building, 
+  Car, 
+  Check, 
+  X, 
+  Calendar as CalendarIcon, 
+  DollarSign, 
+  Clock, 
+  User, 
+  ShieldCheck, 
+  AlertCircle,
+  Building2,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { formatUSD } from '@/lib/format';
 
 interface Resource {
   id: string;
@@ -37,16 +56,10 @@ interface Reservation {
   };
 }
 
-const resourceIcons: Record<string, React.ReactNode> = {
-  'Green Spaces': <TreesIcon className="w-5 h-5" />,
-  'Community Hall': <Building className="w-5 h-5" />,
-  'Visitor Parking': <Car className="w-5 h-5" />,
-};
-
-const resourceColors: Record<string, string> = {
-  'Green Spaces': 'bg-green-500',
-  'Community Hall': 'bg-blue-500',
-  'Visitor Parking': 'bg-amber-500',
+const resourceIcons: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label?: string }> = {
+  'Zonas Verdes': { icon: TreesIcon, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  'Salón Social': { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
+  'Parqueadero Visitantes': { icon: Car, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
 };
 
 const ManageReservations = () => {
@@ -61,32 +74,36 @@ const ManageReservations = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const fetchReservations = async () => {
-    const { data: reservationsData } = await supabase
-      .from('reservations')
-      .select('*, resources(*)')
-      .order('start_time', { ascending: true });
+    try {
+      const { data: reservationsData } = await supabase
+        .from('reservations')
+        .select('*, resources(*)')
+        .order('start_time', { ascending: true });
 
-    if (reservationsData) {
-      const userIds = [...new Set(reservationsData.map(r => r.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, apartment_number, email')
-        .in('id', userIds);
+      if (reservationsData) {
+        const userIds = [...new Set(reservationsData.map(r => r.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, apartment_number, email')
+          .in('id', userIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      const reservationsWithProfiles = reservationsData.map(r => ({
-        ...r,
-        profiles: profileMap.get(r.user_id) || null
-      }));
-      setReservations(reservationsWithProfiles as Reservation[]);
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        const reservationsWithProfiles = reservationsData.map(r => ({
+          ...r,
+          profiles: profileMap.get(r.user_id) || null
+        }));
+        setReservations(reservationsWithProfiles as Reservation[]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchReservations();
 
-    // Subscribe to realtime updates
     const channel = supabase
       .channel('admin-reservations-realtime')
       .on(
@@ -107,34 +124,6 @@ const ManageReservations = () => {
     };
   }, []);
 
-  const sendNotification = async (reservation: Reservation, action: 'approved' | 'rejected', reason?: string) => {
-    try {
-      await supabase.functions.invoke('send-notification', {
-        body: {
-          type: 'reservation_status_change',
-          reservationId: reservation.id,
-          recipientEmail: reservation.profiles?.email,
-          recipientName: reservation.profiles?.full_name,
-          action,
-          reason,
-        },
-      });
-    } catch (error) {
-      console.error('Failed to send notification:', error);
-    }
-    // In-app notification
-    const isApproved = action === 'approved';
-    await supabase.from('notifications').insert({
-      user_id: reservation.user_id,
-      title: isApproved ? '✅ Reservación aprobada' : '❌ Reservación rechazada',
-      message: isApproved
-        ? `Tu reservación de ${reservation.resources?.name || 'recurso'} ha sido aprobada.`
-        : `Tu reservación fue rechazada.${reason ? ` Motivo: ${reason}` : ''}`,
-      type: isApproved ? 'success' : 'error',
-      link: '/reservations',
-    });
-  };
-
   const handleApprove = async (reservation: Reservation) => {
     setProcessingId(reservation.id);
     const { error } = await supabase
@@ -143,13 +132,29 @@ const ManageReservations = () => {
       .eq('id', reservation.id);
 
     if (error) {
-      toast.error('Failed to approve reservation');
+      toast.error('Error al autorizar reserva: ' + error.message);
     } else {
-      toast.success('Reservation approved');
-      await sendNotification(reservation, 'approved');
+      toast.success('Reserva aprobada exitosamente');
+      await notifyReservation(reservation, 'confirmed');
       fetchReservations();
     }
     setProcessingId(null);
+  };
+
+  // El residente se entera por la campana de notificaciones
+  const notifyReservation = async (reservation: Reservation, outcome: 'confirmed' | 'rejected', reason = '') => {
+    const area = reservation.resources?.name || 'el área común';
+    const when = format(new Date(reservation.start_time), "d 'de' MMMM, HH:mm", { locale: es });
+    const { error } = await supabase.from('notifications').insert({
+      user_id: reservation.user_id,
+      title: outcome === 'confirmed' ? 'Reserva confirmada' : 'Reserva rechazada',
+      message: outcome === 'confirmed'
+        ? `Tu reserva de ${area} para el ${when} fue confirmada.`
+        : `Tu reserva de ${area} para el ${when} fue rechazada.${reason ? ' Motivo: ' + reason : ''}`,
+      type: outcome === 'confirmed' ? 'success' : 'warning',
+      link: '/reservations',
+    });
+    if (error) console.warn('No se pudo notificar al residente:', error.message);
   };
 
   const openRejectDialog = (reservation: Reservation) => {
@@ -160,153 +165,169 @@ const ManageReservations = () => {
 
   const handleReject = async () => {
     if (!selectedReservation) return;
-    
+
     setProcessingId(selectedReservation.id);
-    setRejectDialogOpen(false);
-    
     const { error } = await supabase
       .from('reservations')
-      .update({ status: 'cancelled' })
+      .update({
+        // Antes se guardaba como 'cancelled' y no se distinguía de una cancelación del residente
+        status: 'rejected',
+        rejection_reason: rejectionReason.trim() || null
+      })
       .eq('id', selectedReservation.id);
 
     if (error) {
-      toast.error('Failed to reject reservation');
+      toast.error('Error al rechazar reserva: ' + error.message);
     } else {
-      toast.success('Reservation rejected');
-      await sendNotification(selectedReservation, 'rejected', rejectionReason);
+      toast.success('Reserva rechazada');
+      await notifyReservation(selectedReservation, 'rejected', rejectionReason.trim());
       fetchReservations();
     }
     setProcessingId(null);
     setSelectedReservation(null);
-    setRejectionReason('');
+    setRejectDialogOpen(false);
   };
 
   const pendingReservations = reservations.filter(r => r.status === 'pending');
   const confirmedReservations = reservations.filter(r => r.status === 'confirmed');
-  const cancelledReservations = reservations.filter(r => r.status === 'cancelled');
+  const cancelledReservations = reservations.filter(r => r.status === 'cancelled' || r.status === 'rejected');
 
-  // Calendar view logic
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
   const getReservationsForDay = (day: Date) => {
     return reservations.filter(r => 
-      r.status !== 'cancelled' && isSameDay(new Date(r.start_time), day)
+      r.status !== 'cancelled' && r.status !== 'rejected' && isSameDay(new Date(r.start_time), day)
     );
   };
 
-  const renderReservationCard = (reservation: Reservation, showActions: boolean = false) => (
-    <div
-      key={reservation.id}
-      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border/50 hover:border-primary/30 transition-colors gap-4"
-    >
-      <div className="flex items-center gap-4">
-        <div className="p-3 rounded-xl bg-primary/10 text-primary">
-          {resourceIcons[reservation.resources?.name || ''] || <Building className="w-5 h-5" />}
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="font-semibold">{reservation.resources?.name}</h4>
-            {reservation.price !== null && reservation.price > 0 && (
-              <span className="text-sm font-medium text-primary flex items-center gap-0.5">
-                <DollarSign className="w-3 h-3" />
-                {reservation.price.toFixed(2)}
+  const formatPrice = (price: number | null) => {
+    if (!price || price === 0) return 'Gratis';
+    return formatUSD(price);
+  };
+
+  const renderReservationCard = (reservation: Reservation, showActions: boolean = false) => {
+    const config = resourceIcons[reservation.resources?.name || ''] || { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' };
+    const Icon = config.icon;
+
+    return (
+      <div
+        key={reservation.id}
+        className="p-5 rounded-2xl bg-card transition-[color,background-color,border-color,box-shadow,opacity,transform] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-hairline"
+      >
+        <div className="flex items-start gap-4">
+          <div className={`w-12 h-12 rounded-xl ${config.bg} ${config.color} border ${config.border} flex items-center justify-center flex-shrink-0`}>
+            <Icon className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <h4 className="font-semibold text-base text-foreground">{reservation.resources?.name}</h4>
+              <span className="text-xs font-semibold text-primary px-2.5 py-0.5 rounded-md bg-primary/10">
+                {formatPrice(reservation.price)}
               </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-muted-foreground">
+              <span className="capitalize">{format(new Date(reservation.start_time), "EEEE d 'de' MMMM", { locale: es })}</span>
+              <span>{format(new Date(reservation.start_time), 'h:mm a')} – {format(new Date(reservation.end_time), 'h:mm a')}</span>
+            </div>
+            <div className="text-xs font-semibold text-foreground pt-1">
+              <span>Solicitado por: <strong>{reservation.profiles?.full_name || 'Residente'}</strong></span>
+              <span className="text-muted-foreground ml-2">(Apto {reservation.profiles?.apartment_number || 'S/N'})</span>
+            </div>
+            {reservation.notes && (
+              <p className="text-xs text-muted-foreground italic mt-0.5">"{reservation.notes}"</p>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(reservation.start_time), 'MMM d, yyyy')} •{' '}
-            {format(new Date(reservation.start_time), 'h:mm a')} -{' '}
-            {format(new Date(reservation.end_time), 'h:mm a')}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Requested by: {reservation.profiles?.full_name || 'Unknown'} 
-            {reservation.profiles?.apartment_number && ` (Apt ${reservation.profiles.apartment_number})`}
-          </p>
-          {reservation.notes && (
-            <p className="text-sm text-muted-foreground mt-1 italic">"{reservation.notes}"</p>
+        </div>
+
+        <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-border/70">
+          {showActions ? (
+            <>
+              <Button
+                size="sm"
+                className="h-10 px-4 rounded-xl font-semibold text-xs gap-1.5 shadow-sm"
+                onClick={() => handleApprove(reservation)}
+                disabled={processingId === reservation.id}
+              >
+                {processingId === reservation.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Autorizar
+                  </>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-10 px-4 rounded-xl border border-rose-300 text-rose-600 hover:bg-rose-500/10 font-semibold text-xs gap-1.5"
+                onClick={() => openRejectDialog(reservation)}
+                disabled={processingId === reservation.id}
+              >
+                <X className="w-4 h-4" />
+                Rechazar
+              </Button>
+            </>
+          ) : (
+            <StatusBadge 
+              status={
+                reservation.status === 'confirmed' ? 'success' :
+                reservation.status === 'pending' ? 'warning' : 'destructive'
+              }
+            >
+              {reservation.status === 'confirmed' ? 'Autorizada' :
+               reservation.status === 'rejected' ? 'Rechazada' :
+               reservation.status === 'cancelled' ? 'Cancelada' : 'Pendiente'}
+            </StatusBadge>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3 self-end sm:self-auto">
-        {showActions ? (
-          <>
-            <Button
-              size="sm"
-              onClick={() => handleApprove(reservation)}
-              disabled={processingId === reservation.id}
-            >
-              {processingId === reservation.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-1" />
-                  Approve
-                </>
-              )}
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => openRejectDialog(reservation)}
-              disabled={processingId === reservation.id}
-            >
-              <X className="w-4 h-4 mr-1" />
-              Reject
-            </Button>
-          </>
-        ) : (
-          <StatusBadge 
-            status={
-              reservation.status === 'confirmed' ? 'success' : 
-              reservation.status === 'cancelled' ? 'destructive' : 'warning'
-            }
-          >
-            {reservation.status === 'confirmed' ? 'Confirmed' : 
-             reservation.status === 'cancelled' ? 'Cancelled' : 'Pending'}
-          </StatusBadge>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderCalendarView = () => (
-    <Card className="card-elevated">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Reservation Calendar</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-              Previous
-            </Button>
-            <span className="font-semibold min-w-[140px] text-center">
-              {format(currentMonth, 'MMMM yyyy')}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-              Next
-            </Button>
-          </div>
+    <div className="rounded-2xl bg-card overflow-hidden shadow-hairline">
+      <div className="p-5 bg-muted/40 border-b border-border/70 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 className="font-semibold text-base text-foreground">Ocupación del mes</h3>
+          <p className="text-xs text-muted-foreground font-medium">Visualización general de espacios reservados</p>
         </div>
-        <div className="flex gap-4 mt-4">
-          {Object.entries(resourceColors).map(([name, color]) => (
-            <div key={name} className="flex items-center gap-2 text-sm">
-              <div className={`w-3 h-3 rounded-full ${color}`} />
-              <span>{name}</span>
-            </div>
-          ))}
+        <div className="flex items-center gap-2 bg-background border border-border/80 rounded-xl p-1 shadow-2xs">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 px-2 font-semibold text-xs"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Anterior
+          </Button>
+          <span className="font-semibold min-w-[140px] text-center text-xs text-foreground capitalize">
+            {format(currentMonth, 'MMMM yyyy', { locale: es })}
+          </span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 px-2 font-semibold text-xs"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          >
+            Siguiente
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-1">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="p-2 text-center font-semibold text-muted-foreground text-sm">
+      </div>
+
+      <div className="p-4 sm:p-6">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+          {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
+            <div key={day} className="p-2 text-center font-medium text-muted-foreground text-xs">
               {day}
             </div>
           ))}
-          {/* Empty cells for days before month starts */}
           {Array.from({ length: monthStart.getDay() }).map((_, i) => (
-            <div key={`empty-start-${i}`} className="p-2 min-h-[100px]" />
+            <div key={`empty-start-${i}`} className="p-2 min-h-[90px] bg-muted/10 rounded-xl border border-transparent" />
           ))}
           {daysInMonth.map(day => {
             const dayReservations = getReservationsForDay(day);
@@ -315,77 +336,77 @@ const ManageReservations = () => {
             return (
               <div
                 key={day.toISOString()}
-                className={`p-2 min-h-[100px] border rounded-lg ${
-                  isToday ? 'border-primary bg-primary/5' : 'border-border/50'
-                } ${!isSameMonth(day, currentMonth) ? 'opacity-50' : ''}`}
+                className={`p-2 min-h-[90px] border rounded-xl flex flex-col justify-between ${
+                  isToday 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border/60 bg-background'
+                } ${!isSameMonth(day, currentMonth) ? 'opacity-40' : ''}`}
               >
-                <div className={`text-sm font-medium mb-1 ${isToday ? 'text-primary' : ''}`}>
+                <span className={`text-xs font-semibold ${isToday ? 'text-primary' : 'text-foreground'}`}>
                   {format(day, 'd')}
-                </div>
-                <div className="space-y-1">
-                  {dayReservations.slice(0, 3).map(r => (
-                    <div
-                      key={r.id}
-                      className={`text-xs p-1 rounded truncate text-white ${resourceColors[r.resources?.name || ''] || 'bg-gray-500'} ${r.status === 'pending' ? 'opacity-60' : ''}`}
-                      title={`${r.resources?.name} - ${r.profiles?.full_name || 'Unknown'} (${format(new Date(r.start_time), 'h:mm a')})`}
+                </span>
+                
+                <div className="space-y-1 mt-1">
+                  {dayReservations.slice(0, 2).map(r => (
+                    <div 
+                      key={r.id} 
+                      className="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 truncate"
+                      title={`${r.resources?.name} - ${r.profiles?.full_name || 'Residente'}`}
                     >
-                      {format(new Date(r.start_time), 'h:mm a')} {r.resources?.name?.charAt(0)}
+                      {r.resources?.name} ({format(new Date(r.start_time), 'h a')})
                     </div>
                   ))}
-                  {dayReservations.length > 3 && (
-                    <div className="text-xs text-muted-foreground">
-                      +{dayReservations.length - 3} more
-                    </div>
+                  {dayReservations.length > 2 && (
+                    <span className="text-xs font-medium text-muted-foreground block text-center">
+                      +{dayReservations.length - 2} más
+                    </span>
                   )}
                 </div>
               </div>
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
-
-  if (!isAdmin) {
-    return (
-      <DashboardLayout>
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold">Access Denied</h2>
-          <p className="text-muted-foreground">You don't have permission to access this page.</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-8 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold flex items-center gap-3">
-              <CalendarDays className="w-8 h-8 text-primary" />
-              Manage Reservations
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[13px] font-medium text-primary">
+                Comunidad
+              </span>
+            </div>
+            <h1 className="text-[28px] sm:text-[32px] leading-tight font-semibold text-foreground tracking-tight">
+              Reservas
             </h1>
-            <p className="text-muted-foreground mt-1">
-              Approve or reject resident reservation requests
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base font-medium">
+              Revisa, aprueba o rechaza las solicitudes de los residentes.
             </p>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-2 bg-muted/40 p-1.5 rounded-xl border border-border/80">
             <Button 
-              variant={activeView === 'list' ? 'default' : 'outline'} 
+              variant={activeView === 'list' ? 'default' : 'ghost'} 
               size="sm"
+              className="h-10 px-4 rounded-lg font-semibold text-xs gap-2"
               onClick={() => setActiveView('list')}
             >
-              <CalendarDays className="w-4 h-4 mr-2" />
-              List View
+              <CalendarDays className="w-4 h-4" />
+              Lista
             </Button>
             <Button 
-              variant={activeView === 'calendar' ? 'default' : 'outline'} 
+              variant={activeView === 'calendar' ? 'default' : 'ghost'} 
               size="sm"
+              className="h-10 px-4 rounded-lg font-semibold text-xs gap-2"
               onClick={() => setActiveView('calendar')}
             >
-              <CalendarIcon className="w-4 h-4 mr-2" />
-              Calendar View
+              <CalendarIcon className="w-4 h-4" />
+              Calendario
             </Button>
           </div>
         </div>
@@ -393,124 +414,96 @@ const ManageReservations = () => {
         {activeView === 'calendar' ? (
           renderCalendarView()
         ) : (
-          <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-md">
-              <TabsTrigger value="pending" className="relative">
-                Pending
+          <Tabs defaultValue="pending" className="w-full space-y-6">
+            <TabsList className="grid w-full grid-cols-3 max-w-md h-12 p-1 bg-muted/60 rounded-xl border border-border/80">
+              <TabsTrigger value="pending" className="font-semibold text-xs rounded-lg gap-2">
+                Por aprobar
                 {pendingReservations.length > 0 && (
-                  <span className="ml-2 bg-warning text-warning-foreground text-xs px-2 py-0.5 rounded-full">
+                  <span className="bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.2 rounded-full">
                     {pendingReservations.length}
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
-              <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+              <TabsTrigger value="confirmed" className="font-semibold text-xs rounded-lg">
+                Autorizadas ({confirmedReservations.length})
+              </TabsTrigger>
+              <TabsTrigger value="cancelled" className="font-semibold text-xs rounded-lg">
+                Canceladas o rechazadas ({cancelledReservations.length})
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="pending" className="mt-6">
-              <Card className="card-elevated">
-                <CardHeader>
-                  <CardTitle>Pending Reservations</CardTitle>
-                  <CardDescription>Reservations awaiting your approval</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                  ) : pendingReservations.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold text-lg">No pending reservations</h3>
-                      <p className="text-muted-foreground">All caught up!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {pendingReservations.map(r => renderReservationCard(r, true))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="pending" className="space-y-4">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-16 rounded-2xl bg-card shadow-hairline">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                  <span className="text-xs font-medium text-muted-foreground">Cargando solicitudes...</span>
+                </div>
+              ) : pendingReservations.length === 0 ? (
+                <div className="border border-dashed border-border/80 rounded-2xl p-12 text-center bg-card">
+                  <Check className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+                  <h3 className="font-semibold text-base text-foreground">No hay reservas pendientes</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Todas las solicitudes han sido gestionadas al día.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingReservations.map(r => renderReservationCard(r, true))}
+                </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="confirmed" className="mt-6">
-              <Card className="card-elevated">
-                <CardHeader>
-                  <CardTitle>Confirmed Reservations</CardTitle>
-                  <CardDescription>Approved reservations</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                  ) : confirmedReservations.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold text-lg">No confirmed reservations</h3>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {confirmedReservations.map(r => renderReservationCard(r, false))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="confirmed" className="space-y-4">
+              {confirmedReservations.length === 0 ? (
+                <div className="border border-dashed border-border/80 rounded-2xl p-12 text-center bg-card">
+                  <p className="text-xs font-medium text-muted-foreground">No hay reservas confirmadas registradas.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {confirmedReservations.map(r => renderReservationCard(r, false))}
+                </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="cancelled" className="mt-6">
-              <Card className="card-elevated">
-                <CardHeader>
-                  <CardTitle>Cancelled Reservations</CardTitle>
-                  <CardDescription>Rejected or cancelled reservations</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                  ) : cancelledReservations.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold text-lg">No cancelled reservations</h3>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {cancelledReservations.map(r => renderReservationCard(r, false))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="cancelled" className="space-y-4">
+              {cancelledReservations.length === 0 ? (
+                <div className="border border-dashed border-border/80 rounded-2xl p-12 text-center bg-card">
+                  <p className="text-xs font-medium text-muted-foreground">No hay reservas canceladas o rechazadas.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {cancelledReservations.map(r => renderReservationCard(r, false))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         )}
 
-        {/* Rejection Reason Dialog */}
+        {/* Rejection Modal */}
         <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md rounded-2xl bg-card p-6">
             <DialogHeader>
-              <DialogTitle>Reject Reservation</DialogTitle>
-              <DialogDescription>
-                Provide a reason for rejecting this reservation. This will be sent to the resident.
+              <DialogTitle className="text-xl font-semibold text-foreground">Rechazar solicitud de reserva</DialogTitle>
+              <DialogDescription className="text-sm font-medium text-muted-foreground">
+                Indica la razón por la cual no es posible autorizar esta solicitud. El residente la verá en su panel.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Rejection Reason</Label>
-                <Textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g., The requested time slot conflicts with scheduled maintenance..."
-                  rows={4}
-                />
-              </div>
+
+            <div className="space-y-3 py-3">
+              <Label htmlFor="manage-reservations-motivo-del-rechazo" className="text-xs font-semibold text-foreground">Motivo del rechazo</Label>
+              <Textarea id="manage-reservations-motivo-del-rechazo"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Ej: Mantenimiento programado de pintura en la fecha solicitada..."
+                rows={4}
+                className="border border-border/80 rounded-xl bg-background font-medium resize-none text-sm"
+              />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-                Cancel
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/70">
+              <Button variant="outline" onClick={() => setRejectDialogOpen(false)} className="rounded-xl font-semibold border">
+                Cancelar
               </Button>
-              <Button variant="destructive" onClick={handleReject}>
-                Reject Reservation
+              <Button variant="destructive" onClick={handleReject} className="rounded-xl font-semibold">
+                Confirmar rechazo
               </Button>
             </DialogFooter>
           </DialogContent>

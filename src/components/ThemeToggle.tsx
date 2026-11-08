@@ -1,5 +1,6 @@
-import { Moon, Sun } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,30 +9,42 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+// Cambio de icono: escala desde 0.25, desenfoque y opacidad, con spring sin rebote
+const iconSwap = {
+  initial: { scale: 0.25, opacity: 0, filter: 'blur(4px)' },
+  animate: { scale: 1, opacity: 1, filter: 'blur(0px)' },
+  exit: { scale: 0.25, opacity: 0, filter: 'blur(4px)' },
+  transition: { type: 'spring' as const, duration: 0.3, bounce: 0 },
+};
+
 export function ThemeToggle() {
-  const { setTheme, theme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9">
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span key={isDark ? 'moon' : 'sun'} className="flex" {...iconSwap}>
+              {isDark ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+            </motion.span>
+          </AnimatePresence>
+          <span className="sr-only">Cambiar apariencia</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuItem onClick={() => setTheme('light')}>
           <Sun className="mr-2 h-4 w-4" />
-          Light
+          Claro
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('dark')}>
           <Moon className="mr-2 h-4 w-4" />
-          Dark
+          Oscuro
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('system')}>
-          <span className="mr-2">💻</span>
-          System
+          <Monitor className="mr-2 h-4 w-4" />
+          Automático
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

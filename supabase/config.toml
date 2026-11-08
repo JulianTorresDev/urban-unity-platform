@@ -1,1 +1,14 @@
-project_id = "eulsrtpqapzujcqtsimz"
+project_id = "isdhzlughnyqhobzwarl"
+
+[auth]
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["http://localhost:8080"]
+minimum_password_length = 8
+# Sin registro público: las cuentas las crea la administración (función create-resident)
+# o scripts/seed_users.mjs con la API de administración
+enable_signup = false
+
+[auth.email]
+enable_signup = true
+# La administración da de alta a los residentes: no se pide confirmar el correo
+enable_confirmations = false

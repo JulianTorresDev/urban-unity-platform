@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute, AdminRoute, SuperAdminRoute } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
+import { MotionConfig } from "framer-motion";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -35,12 +37,19 @@ import ManageAccess from "./pages/admin/ManageAccess";
 
 const queryClient = new QueryClient();
 
+// La demo (npm run build:demo) corre dentro de un artifact: rutas en memoria y barra de cuentas de ejemplo
+const IS_DEMO = import.meta.env.MODE === "demo";
+const Router = IS_DEMO ? MemoryRouter : BrowserRouter;
+const DemoBar = IS_DEMO ? lazy(() => import("./demo/DemoBar")) : null;
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+    {/* Respeta "reducir movimiento" del sistema en todas las animaciones de framer-motion */}
+    <MotionConfig reducedMotion="user">
+    <TooltipProvider delayDuration={400}>
       <Toaster />
       <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ThemeProvider>
           <AuthProvider>
             <Routes>
@@ -77,10 +86,12 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            {DemoBar && <Suspense fallback={null}><DemoBar /></Suspense>}
           </AuthProvider>
         </ThemeProvider>
-      </BrowserRouter>
+      </Router>
     </TooltipProvider>
+    </MotionConfig>
   </QueryClientProvider>
 );
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Loader2, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Calendar as CalendarIcon, Clock, CheckCircle2 } from 'lucide-react';
 import { 
   format, 
   startOfMonth, 
@@ -46,7 +46,7 @@ export const AvailabilityCalendar = ({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewDate, setViewDate] = useState<Date | null>(null);
+  const [viewDate, setViewDate] = useState<Date | null>(selectedDate || new Date());
 
   useEffect(() => {
     if (!resourceId) return;
@@ -117,7 +117,7 @@ export const AvailabilityCalendar = ({
 
   const handleDayClick = (day: Date) => {
     if (isBefore(startOfDay(day), startOfDay(new Date()))) return;
-    setViewDate(viewDate && isSameDay(viewDate, day) ? null : day);
+    setViewDate(day);
   };
 
   const handleSlotClick = (day: Date, hour: number) => {
@@ -126,65 +126,79 @@ export const AvailabilityCalendar = ({
   };
 
   return (
-    <Card className="border-none bg-muted/30 shadow-inner rounded-3xl overflow-hidden">
-      <CardHeader className="pb-4 bg-background/40 backdrop-blur-sm border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4 text-primary" />
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground">Disponibilidad</CardTitle>
+    <div className="rounded-2xl bg-card overflow-hidden shadow-hairline">
+      {/* Calendar Header */}
+      <div className="p-4 bg-muted/30 border-b border-border/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center text-muted-foreground">
+            <CalendarIcon className="w-4 h-4" />
           </div>
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 rounded-full hover:bg-primary/10"
-              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-black min-w-[120px] text-center capitalize">
-              {format(currentMonth, 'MMMM yyyy', { locale: es })}
-            </span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 rounded-full hover:bg-primary/10"
-              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <div>
+            <h4 className="text-xs font-semibold text-foreground">Disponibilidad</h4>
+            <p className="text-xs text-muted-foreground font-medium">Toca un día para ver los turnos disponibles</p>
           </div>
         </div>
-        <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest mt-4">
+
+        <div className="flex items-center gap-1.5 bg-background border border-border/80 rounded-xl p-1 shadow-xs">
+          <Button 
+            type="button"
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-lg hover:bg-muted text-foreground"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+            title="Mes anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-xs font-semibold min-w-[130px] text-center capitalize text-foreground">
+            {format(currentMonth, 'MMMM yyyy', { locale: es })}
+          </span>
+          <Button 
+            type="button"
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-lg hover:bg-muted text-foreground"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+            title="Mes siguiente"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-4 sm:p-5">
+        {/* Status Indicators */}
+        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold pb-4 mb-4 border-b border-border/60">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-primary/20 border border-primary/40" />
-            <span className="text-muted-foreground/60">Disponible</span>
+            <span className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500" />
+            <span className="text-muted-foreground">Libre</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/30" />
-            <span className="text-muted-foreground/60">Ocupado</span>
+            <span className="w-3 h-3 rounded-full bg-rose-500/20 border border-rose-500" />
+            <span className="text-muted-foreground">Con reservas</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-muted/60" />
-            <span className="text-muted-foreground/60">Pasado</span>
+            <span className="w-3 h-3 rounded-full bg-primary border border-primary" />
+            <span className="text-foreground">Seleccionado</span>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="pt-6 px-6">
+
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+            <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            <span className="text-xs font-semibold">Consultando calendario...</span>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-7 gap-2 mb-4">
+            {/* Days grid */}
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-4">
               {['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'].map((day, i) => (
-                <div key={i} className="text-center text-[10px] font-black text-muted-foreground/50 py-1">
+                <div key={i} className="text-center text-xs font-medium text-muted-foreground py-1">
                   {day}
                 </div>
               ))}
               {Array.from({ length: monthStart.getDay() }).map((_, i) => (
-                <div key={`empty-${i}`} />
+                <div key={`empty-${i}`} className="aspect-square" />
               ))}
               {daysInMonth.map(day => {
                 const dayReservations = getReservationsForDay(day);
@@ -200,31 +214,47 @@ export const AvailabilityCalendar = ({
                     onClick={() => handleDayClick(day)}
                     disabled={isPast}
                     className={`
-                      relative aspect-square flex flex-col items-center justify-center text-xs font-bold rounded-2xl transition-all
-                      ${isToday ? 'border-2 border-primary' : 'border border-transparent'}
-                      ${isPast ? 'text-muted-foreground/30 cursor-not-allowed' : 'hover:bg-primary/10 cursor-pointer'}
-                      ${isSelected ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110 z-10' : 'text-foreground'}
+                      relative aspect-square min-h-[40px] flex flex-col items-center justify-center text-xs font-semibold rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] border
+                      ${isPast 
+                        ? 'border-transparent text-muted-foreground/30 bg-muted/20 cursor-not-allowed' 
+                        : isSelected
+                          ? 'border-primary bg-primary text-primary-foreground shadow-md scale-105 z-10'
+                          : isToday
+                            ? 'border-primary/80 bg-primary/5 text-foreground hover:bg-primary/10 cursor-pointer'
+                            : 'border-border/60 bg-background hover:border-primary/50 text-foreground cursor-pointer'
+                      }
                     `}
                   >
-                    {format(day, 'd')}
+                    <span>{format(day, 'd')}</span>
                     {hasBookings && !isPast && !isSelected && (
-                      <div className="absolute bottom-1.5 w-1 h-1 rounded-full bg-rose-500" />
+                      <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-rose-500" />
                     )}
                   </button>
                 );
               })}
             </div>
 
-            <AnimatePresence>
+            {/* Time Slot Picker for selected day */}
+            <AnimatePresence mode="wait">
               {viewDate && (
-                <div className="mt-4 pt-6 border-t border-border/50 animate-fade-in">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Clock className="w-4 h-4 text-primary" />
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                      Horarios para el {format(viewDate, "d 'de' MMMM", { locale: es })}
-                    </p>
+                <motion.div 
+                  key={viewDate.toISOString()}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="mt-4 pt-4 border-t border-border/70"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-primary" />
+                      <h5 className="text-xs font-semibold text-foreground">
+                        Turnos para el {format(viewDate, "EEEE d 'de' MMMM", { locale: es })}
+                      </h5>
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">Horario: 8:00 AM - 9:00 PM</span>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
                     {timeSlots.map(hour => {
                       const isTaken = isSlotTaken(viewDate, hour);
                       const isPast = isPastSlot(viewDate, hour);
@@ -237,24 +267,31 @@ export const AvailabilityCalendar = ({
                           onClick={() => handleSlotClick(viewDate, hour)}
                           disabled={isTaken || isPast}
                           className={`
-                            p-3 text-xs font-bold rounded-xl transition-all border
-                            ${isPast ? 'bg-muted/40 text-muted-foreground/30 border-transparent cursor-not-allowed' : ''}
-                            ${isTaken && !isPast ? 'bg-rose-500/10 text-rose-600 border-rose-200 cursor-not-allowed' : ''}
-                            ${!isTaken && !isPast ? 'bg-background hover:bg-primary/10 border-border/50 hover:border-primary/30 cursor-pointer' : ''}
-                            ${isSelectedSlot ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105' : ''}
+                            py-3 px-2 min-h-[46px] text-xs font-semibold rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] border text-center flex flex-col items-center justify-center
+                            ${isPast 
+                              ? 'bg-muted/30 text-muted-foreground/30 border-transparent cursor-not-allowed' 
+                              : isTaken 
+                                ? 'bg-rose-500/10 text-rose-600 border-rose-200 dark:border-rose-900/50 cursor-not-allowed font-semibold'
+                                : isSelectedSlot
+                                  ? 'bg-primary text-primary-foreground border-primary shadow-md scale-102 ring-2 ring-primary/30'
+                                  : 'bg-background text-foreground border-border/80 hover:border-primary hover:bg-primary/5 cursor-pointer'
+                            }
                           `}
                         >
-                          {format(setHours(new Date(), hour), 'h a')}
+                          <span>{format(setHours(new Date(), hour), 'h:00 a')}</span>
+                          <span className="text-xs font-semibold mt-0.5 opacity-80">
+                            {isPast ? 'Pasado' : isTaken ? 'Ocupado' : isSelectedSlot ? 'Elegido' : 'Libre'}
+                          </span>
                         </button>
                       );
                     })}
                   </div>
-                </div>
+                </motion.div>
               )}
             </AnimatePresence>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
