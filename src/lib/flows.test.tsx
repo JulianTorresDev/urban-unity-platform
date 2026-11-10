@@ -109,15 +109,17 @@ describe('Marca del conjunto', () => {
     m.settingsRow.current = { company_name: 'Conjunto Prueba', primary_color: '#ff0000', secondary_color: '#000000', logo_url: null };
     render(<ThemeProvider><Probe /></ThemeProvider>);
     expect(await screen.findByText('Conjunto Prueba')).toBeInTheDocument();
-    await waitFor(() => expect(document.documentElement.style.getPropertyValue('--primary')).toBe('0 100% 50%'));
+    await waitFor(() => expect(document.documentElement.style.getPropertyValue('--brand-light')).toBe('0 100% 50%'));
+    // En modo oscuro se usa una variante aclarada del mismo tono
+    expect(document.documentElement.style.getPropertyValue('--brand-dark')).toBe('0 80% 74%');
     expect(document.title).toContain('Conjunto Prueba');
   });
 
-  test('FLU-T02 un color guardado inválido no rompe la interfaz (usa el azul por defecto)', async () => {
+  test('FLU-T02 un color guardado inválido no rompe la interfaz (usa el rojo de la fachada)', async () => {
     m.settingsRow.current = { company_name: 'Conjunto Prueba', primary_color: 'url(javascript:x)', secondary_color: null, logo_url: null };
     render(<ThemeProvider><Probe /></ThemeProvider>);
     await screen.findByText('Conjunto Prueba');
-    await waitFor(() => expect(document.documentElement.style.getPropertyValue('--primary')).toBe('211 100% 45%'));
+    await waitFor(() => expect(document.documentElement.style.getPropertyValue('--brand-light')).toBe('357 60% 38%'));
   });
 
   test('FLU-T03 sin configuración guardada usa la marca por defecto', async () => {

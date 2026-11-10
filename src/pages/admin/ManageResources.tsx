@@ -24,9 +24,9 @@ interface Resource {
 }
 
 const resourceIcons: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label?: string }> = {
-  'Zonas Verdes': { icon: TreesIcon, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  'Zonas Verdes': { icon: TreesIcon, color: 'text-success', bg: 'bg-success/10', border: 'border-success/30' },
   'Salón Social': { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
-  'Parqueadero Visitantes': { icon: Car, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+  'Parqueadero Visitantes': { icon: Car, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30' },
 };
 
 const ManageResources = () => {

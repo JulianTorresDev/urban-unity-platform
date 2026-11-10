@@ -57,9 +57,9 @@ interface Reservation {
 }
 
 const resourceIcons: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label?: string }> = {
-  'Zonas Verdes': { icon: TreesIcon, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  'Zonas Verdes': { icon: TreesIcon, color: 'text-success', bg: 'bg-success/10', border: 'border-success/30' },
   'Salón Social': { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
-  'Parqueadero Visitantes': { icon: Car, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+  'Parqueadero Visitantes': { icon: Car, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30' },
 };
 
 const ManageReservations = () => {
@@ -262,7 +262,7 @@ const ManageReservations = () => {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-10 px-4 rounded-xl border border-rose-300 text-rose-600 hover:bg-rose-500/10 font-semibold text-xs gap-1.5"
+                className="h-10 px-4 rounded-xl border border-destructive/40 text-destructive hover:bg-destructive/10 font-semibold text-xs gap-1.5"
                 onClick={() => openRejectDialog(reservation)}
                 disabled={processingId === reservation.id}
               >
@@ -440,7 +440,7 @@ const ManageReservations = () => {
                 </div>
               ) : pendingReservations.length === 0 ? (
                 <div className="border border-dashed border-border/80 rounded-2xl p-12 text-center bg-card">
-                  <Check className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+                  <Check className="w-12 h-12 text-success mx-auto mb-3" />
                   <h3 className="font-semibold text-base text-foreground">No hay reservas pendientes</h3>
                   <p className="text-xs text-muted-foreground mt-1">Todas las solicitudes han sido gestionadas al día.</p>
                 </div>

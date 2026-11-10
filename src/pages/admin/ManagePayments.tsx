@@ -211,7 +211,7 @@ const ManagePayments = () => {
         return <StatusBadge status="success">Pagado</StatusBadge>;
       case 'pending':
         return hasReceipt ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/30">
             <Clock className="w-3.5 h-3.5" />
             Por revisar
           </span>
@@ -454,7 +454,7 @@ const ManagePayments = () => {
                                 size="sm"
                                 disabled={isActing}
                                 onClick={() => handleMarkPaid(payment)}
-                                className="h-10 px-4 gap-1.5 rounded-xl font-semibold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                                className="h-10 px-4 gap-1.5 rounded-xl font-semibold text-xs bg-success hover:bg-success/90 text-success-foreground shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                               >
                                 {isActing ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -470,7 +470,7 @@ const ManagePayments = () => {
                                   size="sm"
                                   disabled={isActing}
                                   onClick={() => handleRejectPayment(payment)}
-                                  className="h-10 px-3 gap-1 rounded-xl font-semibold text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 active:scale-95"
+                                  className="h-10 px-3 gap-1 rounded-xl font-semibold text-xs text-destructive hover:text-destructive hover:bg-destructive/10 active:scale-95"
                                 >
                                   <XCircle className="w-4 h-4" />
                                   Rechazar
@@ -478,7 +478,7 @@ const ManagePayments = () => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/30">
+                            <span className="text-xs font-semibold text-success flex items-center gap-1.5 bg-success/10 px-3 py-1 rounded-lg border border-success/30">
                               <CheckCircle2 className="w-4 h-4" />
                               Pagado
                             </span>
@@ -529,7 +529,7 @@ const ManagePayments = () => {
                     variant="ghost"
                     onClick={() => handleRejectPayment(viewingReceiptPayment)}
                     disabled={actionLoadingId === viewingReceiptPayment.id}
-                    className="h-11 px-4 rounded-xl font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-500/10"
+                    className="h-11 px-4 rounded-xl font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     <XCircle className="w-4 h-4 mr-1.5" />
                     Rechazar
@@ -537,7 +537,7 @@ const ManagePayments = () => {
                   <Button 
                     onClick={() => handleMarkPaid(viewingReceiptPayment)}
                     disabled={actionLoadingId === viewingReceiptPayment.id}
-                    className="h-11 px-6 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                    className="h-11 px-6 rounded-xl font-semibold bg-success hover:bg-success/90 text-success-foreground shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   >
                     {actionLoadingId === viewingReceiptPayment.id ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-1.5" />

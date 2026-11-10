@@ -48,10 +48,10 @@ interface Ticket {
 }
 
 const categoryConfig: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label: string }> = {
-  suggestion: { icon: Lightbulb, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30', label: 'Sugerencia' },
-  complaint: { icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-500/10', border: 'border-rose-500/30', label: 'Queja o reclamo' },
+  suggestion: { icon: Lightbulb, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30', label: 'Sugerencia' },
+  complaint: { icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/30', label: 'Queja o reclamo' },
   maintenance: { icon: Wrench, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', label: 'Mantenimiento' },
-  other: { icon: HelpCircle, color: 'text-slate-600', bg: 'bg-slate-500/10', border: 'border-slate-500/30', label: 'Otro' },
+  other: { icon: HelpCircle, color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border', label: 'Otro' },
 };
 
 const ManageTickets = () => {
@@ -227,14 +227,14 @@ const ManageTickets = () => {
             <span className="text-2xl font-semibold text-primary mt-2">{stats.open}</span>
           </div>
 
-          <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 flex flex-col justify-between">
-            <span className="text-xs font-semibold text-amber-600">En progreso</span>
-            <span className="text-2xl font-semibold text-amber-600 mt-2">{stats.inProgress}</span>
+          <div className="p-4 rounded-2xl border border-warning/30 bg-warning/5 flex flex-col justify-between">
+            <span className="text-xs font-semibold text-warning">En progreso</span>
+            <span className="text-2xl font-semibold text-warning mt-2">{stats.inProgress}</span>
           </div>
 
-          <div className="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col justify-between">
-            <span className="text-xs font-semibold text-emerald-600">Solucionados</span>
-            <span className="text-2xl font-semibold text-emerald-600 mt-2">{stats.resolved}</span>
+          <div className="p-4 rounded-2xl border border-success/30 bg-success/5 flex flex-col justify-between">
+            <span className="text-xs font-semibold text-success">Solucionados</span>
+            <span className="text-2xl font-semibold text-success mt-2">{stats.resolved}</span>
           </div>
         </div>
 

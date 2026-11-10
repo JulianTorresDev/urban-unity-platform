@@ -19,18 +19,20 @@ interface ThemeContextType {
 const defaultSettings: ThemeSettings = {
   company_name: "Gestor Residencial — Gissel's 2",
   logo_url: null,
-  primary_color: '#0071e3',
-  secondary_color: '#1e293b',
+  // Rojo carmín y café de columna de la fachada del conjunto
+  primary_color: '#9b272d',
+  secondary_color: '#42393b',
 };
 
 const STORAGE_KEY = 'gissels2_theme_settings';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const FALLBACK_HSL = '357 60% 38%';
+
 export function hexToHsl(hex: string): string {
-  if (!hex || !hex.startsWith('#')) return '211 100% 45%';
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return FALLBACK_HSL;
   const cleanHex = hex.replace('#', '');
-  if (cleanHex.length !== 6) return '211 100% 45%';
   
   const r = parseInt(cleanHex.slice(0, 2), 16) / 255;
   const g = parseInt(cleanHex.slice(2, 4), 16) / 255;
@@ -56,6 +58,23 @@ export function hexToHsl(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+/**
+ * Variantes del color de marca para cada modo. En oscuro se aclara (60-74 % de luminosidad)
+ * para que el acento siga leyéndose sobre fondos casi negros con texto oscuro encima.
+ */
+export function brandVariants(hex: string): { light: string; dark: string } {
+  const light = hexToHsl(hex);
+  const [h, s, l] = light.split(' ').map((v) => parseFloat(v));
+  const darkL = Math.min(74, Math.max(60, l + 28));
+  return { light, dark: `${h} ${Math.min(s, 80)}% ${darkL}%` };
+}
+
+function applyBrand(root: HTMLElement, hex: string) {
+  const { light, dark } = brandVariants(hex);
+  root.style.setProperty('--brand-light', light);
+  root.style.setProperty('--brand-dark', dark);
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   // Inicializar desde localStorage para evitar cualquier parpadeo de estilos
   const [settings, setSettings] = useState<ThemeSettings>(() => {
@@ -75,12 +94,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const applyTheme = (theme: ThemeSettings) => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    const hslPrimary = hexToHsl(theme.primary_color);
-    
-    root.style.setProperty('--primary', hslPrimary);
-    root.style.setProperty('--sidebar-primary', hslPrimary);
-    root.style.setProperty('--ring', hslPrimary);
-    
+    applyBrand(root, theme.primary_color);
+
     if (theme.company_name) {
       document.title = `${theme.company_name} · Gestión Residencial`;
     }
@@ -97,12 +112,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setSettings(combined);
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      if (combined.primary_color) {
-        const hslPrimary = hexToHsl(combined.primary_color);
-        root.style.setProperty('--primary', hslPrimary);
-        root.style.setProperty('--sidebar-primary', hslPrimary);
-        root.style.setProperty('--ring', hslPrimary);
-      }
+      if (combined.primary_color) applyBrand(root, combined.primary_color);
       if (combined.company_name) {
         document.title = `${combined.company_name} · Gestión Residencial`;
       }

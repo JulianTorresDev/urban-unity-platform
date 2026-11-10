@@ -63,12 +63,12 @@ const AccessQR = () => {
 
         {/* Blocked Alert Banner if applicable */}
         {isBlocked && (
-          <div className="w-full rounded-2xl border border-rose-500 bg-rose-500/10 p-5 space-y-2 text-center">
-            <div className="w-12 h-12 rounded-xl bg-rose-500 text-white flex items-center justify-center mx-auto shadow-md">
+          <div className="w-full rounded-2xl border border-destructive bg-destructive/10 p-5 space-y-2 text-center">
+            <div className="w-12 h-12 rounded-xl bg-destructive text-destructive-foreground flex items-center justify-center mx-auto shadow-md">
               <ShieldAlert className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-semibold text-rose-700 dark:text-rose-400">Acceso suspendido</h3>
-            <p className="text-xs text-rose-700 dark:text-rose-300 font-medium leading-relaxed">
+            <h3 className="text-base font-semibold text-destructive">Acceso suspendido</h3>
+            <p className="text-xs text-destructive font-medium leading-relaxed">
               Tu código está inactivo por pagos pendientes o por decisión de la administración. Sube tu comprobante o acércate a la oficina.
             </p>
           </div>
@@ -123,8 +123,8 @@ const AccessQR = () => {
             {/* Verification Status Pill */}
             <div className={`flex items-center gap-2 px-6 py-3 rounded-xl border font-semibold text-xs ${
               isBlocked
-                ? 'border-rose-500/30 bg-rose-500/10 text-rose-600'
-                : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                : 'border-success/40 bg-success/10 text-success'
             }`}>
               {isBlocked ? (
                 <>

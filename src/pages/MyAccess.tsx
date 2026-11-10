@@ -112,7 +112,7 @@ const MyAccess = () => {
                           className="h-9 px-3 rounded-lg border text-xs font-semibold gap-1.5"
                           onClick={() => copyCode(code.code, code.id)}
                         >
-                          {copiedId === code.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedId === code.id ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
                           {copiedId === code.id ? 'Copiado' : 'Copiar texto'}
                         </Button>
                       </div>
@@ -141,8 +141,8 @@ const MyAccess = () => {
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
                             log.direction === 'entry' 
-                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' 
-                              : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                              ? 'bg-success/10 text-success border-success/30' 
+                              : 'bg-warning/10 text-warning border-warning/30'
                           }`}>
                             {log.direction === 'entry' ? <LogIn className="w-5 h-5" /> : <LogOut className="w-5 h-5" />}
                           </div>

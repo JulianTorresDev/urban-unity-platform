@@ -324,7 +324,7 @@ const News = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-500/10 text-xs font-semibold gap-1.5"
+                            className="h-8 px-3 rounded-lg border border-destructive/40 text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1.5"
                             onClick={() => handleDelete(item.id)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />

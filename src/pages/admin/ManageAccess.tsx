@@ -393,8 +393,8 @@ const ManageAccess = () => {
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
                             log.direction === 'entry' 
-                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' 
-                              : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                              ? 'bg-success/10 text-success border-success/30' 
+                              : 'bg-warning/10 text-warning border-warning/30'
                           }`}>
                             {log.direction === 'entry' ? <LogIn className="w-5 h-5" /> : <LogOut className="w-5 h-5" />}
                           </div>
@@ -558,7 +558,7 @@ const ManageAccess = () => {
                 <Button 
                   onClick={() => handleScan('entry')} 
                   disabled={!scanCode.trim()} 
-                  className="h-12 rounded-xl font-semibold text-xs gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="h-12 rounded-xl font-semibold text-xs gap-2 bg-success hover:bg-success/90 text-success-foreground"
                 >
                   <LogIn className="w-4 h-4" />
                   Registrar entrada
@@ -567,7 +567,7 @@ const ManageAccess = () => {
                   onClick={() => handleScan('exit')} 
                   disabled={!scanCode.trim()} 
                   variant="outline" 
-                  className="h-12 rounded-xl font-semibold text-xs gap-2 border text-amber-600 border-amber-300 hover:bg-amber-500/10"
+                  className="h-12 rounded-xl font-semibold text-xs gap-2 border text-warning border-warning/40 hover:bg-warning/10"
                 >
                   <LogOut className="w-4 h-4" />
                   Registrar salida

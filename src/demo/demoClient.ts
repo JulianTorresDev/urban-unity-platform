@@ -15,7 +15,7 @@ type Row = Record<string, unknown>;
 type DbError = { message: string; code?: string };
 type Result = { data: unknown; error: DbError | null; count?: number | null };
 
-const DB_KEY = 'gissels2-demo-db-v1';
+const DB_KEY = 'gissels2-demo-db-v2';
 const SESSION_KEY = 'gissels2-demo-session-v1';
 
 // ---------- Persistencia ----------

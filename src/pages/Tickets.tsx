@@ -44,10 +44,10 @@ interface Ticket {
 }
 
 const categoryIcons: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label?: string }> = {
-  suggestion: { icon: Lightbulb, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30', label: 'Sugerencia' },
-  complaint: { icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-500/10', border: 'border-rose-500/30', label: 'Queja o reclamo' },
+  suggestion: { icon: Lightbulb, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30', label: 'Sugerencia' },
+  complaint: { icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/30', label: 'Queja o reclamo' },
   maintenance: { icon: Wrench, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', label: 'Reporte técnico' },
-  other: { icon: HelpCircle, color: 'text-slate-600', bg: 'bg-slate-500/10', border: 'border-slate-500/30', label: 'Consulta general' },
+  other: { icon: HelpCircle, color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border', label: 'Consulta general' },
 };
 
 const Tickets = () => {

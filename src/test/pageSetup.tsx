@@ -19,7 +19,7 @@ vi.mock('@/lib/auth', async () => {
 
 vi.mock('@/lib/theme', async () => {
   const { theme } = await import('@/test/supabaseMock');
-  return { useTheme: () => theme, hexToHsl: () => '211 100% 45%' };
+  return { useTheme: () => theme, hexToHsl: () => '357 60% 38%' };
 });
 
 // El layout (menú, campana, tema) tiene sus propias pruebas; aquí solo importa el contenido

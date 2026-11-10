@@ -10,15 +10,16 @@ import { toast } from 'sonner';
 import { Palette, Building2, Upload, Loader2, Monitor, Smartphone, Layout, Check, Globe, Image as ImageIcon, Trash2, Sparkles, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// Acentos de marca probados con contraste AA sobre los neutros cálidos de la app
 const PRESET_COLORS = [
-  { name: "Azul Residencial", hex: '#1168bd' },
-  { name: "Azul Marino", hex: '#1e40af' },
-  { name: "Azul Cielo", hex: '#0284c7' },
-  { name: "Verde Esmeralda", hex: '#059669' },
-  { name: "Verde Bosque", hex: '#0f766e' },
-  { name: "Púrpura Elegante", hex: '#7c3aed' },
-  { name: "Ámbar Dorado", hex: '#d97706' },
-  { name: "Borgoña / Terracota", hex: '#b91c1c' },
+  { name: "Rojo Gissel's", hex: '#9b272d' },
+  { name: "Vino", hex: '#7b2340' },
+  { name: "Azul petróleo", hex: '#0e5f8b' },
+  { name: "Azul residencial", hex: '#1d5fa8' },
+  { name: "Verde pino", hex: '#116963' },
+  { name: "Verde oliva", hex: '#566b1f' },
+  { name: "Índigo", hex: '#3342cc' },
+  { name: "Ciruela", hex: '#6d2f6b' },
 ];
 
 const AdminSettings = () => {
@@ -38,8 +39,8 @@ const AdminSettings = () => {
     if (settings) {
       setFormData({
         company_name: settings.company_name || "Gestor Residencial — Gissel's 2",
-        primary_color: settings.primary_color || '#1168bd',
-        secondary_color: settings.secondary_color || '#1e293b',
+        primary_color: settings.primary_color || '#9b272d',
+        secondary_color: settings.secondary_color || '#42393b',
         logo_url: settings.logo_url || '',
       });
     }
@@ -140,7 +141,7 @@ const AdminSettings = () => {
                 <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary">
                   Ajustes
                 </span>
-                <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                <span className="text-xs font-semibold text-success flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
                   Cambios en vivo
                 </span>
@@ -252,7 +253,7 @@ const AdminSettings = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={handleRemoveLogo}
-                          className="rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 font-semibold gap-1.5 h-10 px-3"
+                          className="rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10 font-semibold gap-1.5 h-10 px-3"
                         >
                           <Trash2 className="w-4 h-4" />
                           Remover
@@ -382,13 +383,13 @@ const AdminSettings = () => {
                       {formData.company_name || 'Gissel\'s 2'}
                     </span>
                   </div>
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <div className="w-2 h-2 rounded-full bg-success" />
                 </div>
 
                 <div className="bg-slate-900 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-semibold text-slate-400">Alícuota del mes</span>
-                    <span className="text-xs font-semibold text-emerald-400">Al día</span>
+                    <span className="text-xs font-semibold text-success">Al día</span>
                   </div>
                   <p className="text-xl font-semibold text-white">$50.00</p>
                   <Button 
@@ -405,7 +406,7 @@ const AdminSettings = () => {
             {/* Note on Persistence */}
             <div className="bg-muted/40 rounded-2xl border border-border/80 p-5 space-y-2 text-xs font-medium text-muted-foreground leading-relaxed">
               <p className="font-semibold text-foreground flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-600" />
+                <Check className="w-4 h-4 text-success" />
                 Se guarda para todos
               </p>
               <p>

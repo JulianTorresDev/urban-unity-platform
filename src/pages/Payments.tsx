@@ -244,7 +244,7 @@ const Payments = () => {
               Obligaciones por pagar
             </h2>
             {pendingPayments.length > 0 && (
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
+              <span className="text-xs font-semibold text-warning bg-warning/10 px-3 py-1 rounded-full border border-warning/30">
                 {pendingPayments.length} pendiente(s)
               </span>
             )}
@@ -255,14 +255,14 @@ const Payments = () => {
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
           ) : pendingPayments.length === 0 ? (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center space-y-3">
-              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400">
+            <div className="bg-success/10 border border-success/30 rounded-2xl p-8 text-center space-y-3">
+              <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto text-success">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
-              <h3 className="text-2xl font-semibold text-emerald-900 dark:text-emerald-300">
+              <h3 className="text-2xl font-semibold text-success">
                 ¡Felicidades! No tienes pagos pendientes
               </h3>
-              <p className="text-emerald-800/80 dark:text-emerald-300/80 text-base font-medium max-w-md mx-auto">
+              <p className="text-success/80 text-base font-medium max-w-md mx-auto">
                 Tu cuenta se encuentra totalmente al día con la administración del conjunto residencial.
               </p>
             </div>
@@ -275,7 +275,7 @@ const Payments = () => {
                 >
                   <div className="flex items-start gap-4">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 mt-1 ${
-                      payment.status === 'overdue' ? 'bg-rose-500/10 text-rose-600' : 'bg-amber-500/10 text-amber-600'
+                      payment.status === 'overdue' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'
                     }`}>
                       <DollarSign className="w-8 h-8" />
                     </div>
@@ -292,7 +292,7 @@ const Payments = () => {
                       </p>
 
                       {payment.rejection_reason && (
-                        <div className="mt-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs font-semibold text-rose-700 dark:text-rose-400">
+                        <div className="mt-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-xs font-semibold text-destructive">
                           Motivo de rechazo previo: {payment.rejection_reason}
                         </div>
                       )}
@@ -328,7 +328,7 @@ const Payments = () => {
                         className={`h-12 px-6 rounded-xl font-semibold gap-2 shadow-sm text-sm active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                           payment.receipt_url 
                             ? 'bg-muted text-foreground hover:bg-muted/80' 
-                            : 'bg-primary text-primary-foreground'
+                            : 'bg-action text-action-foreground hover:bg-action/90'
                         }`}
                       >
                         {isUploading && uploadingPaymentId === payment.id ? (

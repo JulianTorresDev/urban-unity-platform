@@ -418,7 +418,7 @@ const ManageDues = () => {
                   size="sm"
                   onClick={() => setStatusFilter('need_review')}
                   className={`rounded-lg text-xs font-semibold h-9 gap-1.5 ${
-                    summary.needReview > 0 ? 'bg-amber-500 text-white hover:bg-amber-600' : ''
+                    summary.needReview > 0 ? 'bg-warning text-warning-foreground hover:bg-warning/90' : ''
                   }`}
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -441,13 +441,13 @@ const ManageDues = () => {
                 <p className="text-xs font-medium text-muted-foreground">Total emitido</p>
                 <p className="text-2xl sm:text-3xl font-semibold text-foreground font-display mt-1">${summary.total.toFixed(2)}</p>
               </div>
-              <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 shadow-sm">
-                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Cobrado y verificado</p>
-                <p className="text-2xl sm:text-3xl font-semibold text-emerald-800 dark:text-emerald-300 font-display mt-1">${summary.paid.toFixed(2)}</p>
+              <div className="p-5 rounded-2xl bg-success/10 border border-success/30 shadow-sm">
+                <p className="text-xs font-semibold text-success">Cobrado y verificado</p>
+                <p className="text-2xl sm:text-3xl font-semibold text-success font-display mt-1">${summary.paid.toFixed(2)}</p>
               </div>
-              <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 shadow-sm">
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Por revisar</p>
-                <p className="text-2xl sm:text-3xl font-semibold text-amber-800 dark:text-amber-300 font-display mt-1">{summary.needReview}</p>
+              <div className="p-5 rounded-2xl bg-warning/10 border border-warning/30 shadow-sm">
+                <p className="text-xs font-semibold text-warning">Por revisar</p>
+                <p className="text-2xl sm:text-3xl font-semibold text-warning font-display mt-1">{summary.needReview}</p>
               </div>
               <div className="p-5 rounded-2xl bg-card shadow-hairline">
                 <p className="text-xs font-medium text-muted-foreground">Por cobrar total</p>
@@ -507,7 +507,7 @@ const ManageDues = () => {
                               {due.status === 'paid' && <StatusBadge status="success">Pagada</StatusBadge>}
                               {due.status === 'pending' && (
                                 due.receipt_url ? (
-                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/30 animate-pulse">
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/30 animate-pulse">
                                     <Clock className="w-3.5 h-3.5" />
                                     Por revisar
                                   </span>
@@ -542,7 +542,7 @@ const ManageDues = () => {
                                       size="sm"
                                       disabled={isLoading}
                                       onClick={() => handleApproveDue(due)}
-                                      className="h-10 px-4 gap-1.5 rounded-xl font-semibold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                                      className="h-10 px-4 gap-1.5 rounded-xl font-semibold text-xs bg-success hover:bg-success/90 text-success-foreground shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                                     >
                                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                       Aprobar
@@ -554,7 +554,7 @@ const ManageDues = () => {
                                         size="sm"
                                         disabled={isLoading}
                                         onClick={() => handleRejectDue(due)}
-                                        className="h-10 px-3 gap-1 rounded-xl font-semibold text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10"
+                                        className="h-10 px-3 gap-1 rounded-xl font-semibold text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                                       >
                                         <XCircle className="w-4 h-4" />
                                         Rechazar
@@ -563,7 +563,7 @@ const ManageDues = () => {
                                   </>
                                 ) : (
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/30">
+                                    <span className="text-xs font-semibold text-success flex items-center gap-1.5 bg-success/10 px-3 py-1 rounded-lg border border-success/30">
                                       <CheckCircle2 className="w-4 h-4" />
                                       Verificado
                                     </span>
@@ -651,7 +651,7 @@ const ManageDues = () => {
                         }} className="h-8 w-8 text-muted-foreground hover:text-foreground">
                           <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteType(type.id)} className="h-8 w-8 text-rose-500 hover:text-rose-600">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteType(type.id)} className="h-8 w-8 text-destructive hover:text-destructive">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -748,7 +748,7 @@ const ManageDues = () => {
                     variant="ghost"
                     onClick={() => handleRejectDue(selectedReceiptDue)}
                     disabled={actionLoadingId === selectedReceiptDue.id}
-                    className="h-11 px-4 rounded-xl font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-500/10"
+                    className="h-11 px-4 rounded-xl font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     <XCircle className="w-4 h-4 mr-1.5" />
                     Rechazar
@@ -756,7 +756,7 @@ const ManageDues = () => {
                   <Button 
                     onClick={() => handleApproveDue(selectedReceiptDue)}
                     disabled={actionLoadingId === selectedReceiptDue.id}
-                    className="h-11 px-6 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                    className="h-11 px-6 rounded-xl font-semibold bg-success hover:bg-success/90 text-success-foreground shadow-md active:scale-95 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   >
                     {actionLoadingId === selectedReceiptDue.id ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Check className="w-4 h-4 mr-1.5" />}
                     Aprobar

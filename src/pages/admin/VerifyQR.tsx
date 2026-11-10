@@ -234,7 +234,7 @@ const VerifyQR = () => {
                 </Button>
                 
                 {hasCamera === false && (
-                  <div className="flex items-center justify-center gap-2 text-amber-600 bg-amber-500/10 px-4 py-2.5 rounded-xl border border-amber-500/20 max-w-md mx-auto">
+                  <div className="flex items-center justify-center gap-2 text-warning bg-warning/10 px-4 py-2.5 rounded-xl border border-warning/20 max-w-md mx-auto">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                     <p className="text-xs font-semibold">No se detectó cámara o el sitio no se encuentra bajo HTTPS.</p>
                   </div>
@@ -254,7 +254,7 @@ const VerifyQR = () => {
               <div className="rounded-2xl border border-border/80 bg-black overflow-hidden shadow-md">
                 <div className="p-4 bg-slate-900 border-b border-border/40 flex items-center justify-between text-white">
                   <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-success" />
                     <span>Cámara activa</span>
                   </div>
                   <Button 
@@ -288,25 +288,25 @@ const VerifyQR = () => {
             {scanResult && (
               <div className={`p-6 sm:p-8 rounded-2xl border shadow-sm space-y-6 ${
                 scanResult.valid 
-                  ? 'border-emerald-500 bg-emerald-500/[0.03]' 
+                  ? 'border-success bg-success/[0.03]' 
                   : scanResult.blocked 
-                    ? 'border-amber-500 bg-amber-500/[0.03]' 
-                    : 'border-rose-500 bg-rose-500/[0.03]'
+                    ? 'border-warning bg-warning/[0.03]' 
+                    : 'border-destructive bg-destructive/[0.03]'
               }`}>
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/70 pb-5">
                   <div className="flex items-center gap-4 text-center sm:text-left">
                     <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-semibold ${
                       scanResult.valid 
-                        ? 'bg-emerald-500 text-white shadow-md' 
+                        ? 'bg-success text-success-foreground shadow-md' 
                         : scanResult.blocked 
-                          ? 'bg-amber-500 text-white shadow-md' 
-                          : 'bg-rose-500 text-white shadow-md'
+                          ? 'bg-warning text-warning-foreground shadow-md' 
+                          : 'bg-destructive text-destructive-foreground shadow-md'
                     }`}>
                       {scanResult.valid ? <ShieldCheck className="w-9 h-9" /> : <ShieldAlert className="w-9 h-9" />}
                     </div>
                     <div>
                       <h3 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
-                        scanResult.valid ? 'text-emerald-700 dark:text-emerald-400' : scanResult.blocked ? 'text-amber-700 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'
+                        scanResult.valid ? 'text-success' : scanResult.blocked ? 'text-warning' : 'text-destructive'
                       }`}>
                         {scanResult.valid ? 'Acceso autorizado' : scanResult.blocked ? 'Residente en mora' : 'Acceso denegado'}
                       </h3>
@@ -379,7 +379,7 @@ const VerifyQR = () => {
                       className="p-3 rounded-xl border border-border/70 bg-background flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${item.valid ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${item.valid ? 'bg-success' : 'bg-destructive'}`} />
                         <div className="min-w-0">
                           <p className="font-semibold text-foreground truncate">{item.user}</p>
                           <p className="text-xs text-muted-foreground font-medium">Apto {item.domicile} • {item.timestamp}</p>
@@ -387,7 +387,7 @@ const VerifyQR = () => {
                       </div>
 
                       <span className={`text-xs font-semibold uppercase px-2 py-0.5 rounded-md ${
-                        item.valid ? 'bg-emerald-500/10 text-emerald-700' : 'bg-rose-500/10 text-rose-600'
+                        item.valid ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
                       }`}>
                         {item.valid ? 'Paso OK' : 'Denegado'}
                       </span>

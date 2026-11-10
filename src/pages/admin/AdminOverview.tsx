@@ -224,7 +224,7 @@ const AdminOverview = () => {
   };
 
   // Paleta categórica sobria: acento de marca seguido de tonos apagados
-  const COLORS = ['hsl(var(--primary))', '#8e8e93', '#b8925a', '#5e8c7a'];
+  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
   const money = (n: number) =>
     formatUSD(n);
   const hasTickets = !(ticketData.length === 1 && ticketData[0]?.name === 'Sin solicitudes');

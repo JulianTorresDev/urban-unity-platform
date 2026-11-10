@@ -173,7 +173,7 @@ export function createSeed(): DemoDb {
     { id: 'al-4', access_code_id: 'ac-3', direction: 'exit', scanned_by: 'u-lucia', created_at: daysAgo(4, 19) },
   ];
 
-  const system_settings = [{ id: 'settings', company_name: "Gestor Residencial — Gissel's 2", primary_color: '#1168bd', secondary_color: '#1e293b', logo_url: null, updated_at: daysAgo(60) }];
+  const system_settings = [{ id: 'settings', company_name: "Gestor Residencial — Gissel's 2", primary_color: '#9b272d', secondary_color: '#42393b', logo_url: null, updated_at: daysAgo(60) }];
 
   return {
     tables: {

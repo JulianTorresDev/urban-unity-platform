@@ -110,8 +110,8 @@ describe('Color de marca', () => {
     expect(hexToHsl(hex)).toBe(hsl);
   });
 
-  test.each(['', 'rojo', '#fff', '#12345', 'javascript:alert(1)'])('UNI-T02 un valor inválido (%s) usa el azul por defecto', (bad) => {
-    expect(hexToHsl(bad)).toBe('211 100% 45%');
+  test.each(['', 'rojo', '#fff', '#12345', 'javascript:alert(1)'])('UNI-T02 un valor inválido (%s) usa el rojo de la fachada', (bad) => {
+    expect(hexToHsl(bad)).toBe('357 60% 38%');
   });
 });
 

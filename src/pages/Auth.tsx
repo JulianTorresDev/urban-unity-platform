@@ -150,7 +150,7 @@ const Auth = () => {
         <div className="flex items-center gap-2.5">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
-            style={{ backgroundColor: settings.logo_url ? 'transparent' : settings.primary_color || '#0071e3' }}
+            style={{ backgroundColor: settings.logo_url ? 'transparent' : settings.primary_color || '#9b272d' }}
           >
             {settings.logo_url ? (
               <img src={settings.logo_url} alt="" className="w-full h-full object-contain" />
@@ -244,7 +244,7 @@ const Auth = () => {
       </div>
 
       {/* Panel editorial (solo escritorio) */}
-      <aside className="hidden lg:flex relative flex-col justify-between bg-[#0b0b0c] text-white p-14 xl:p-16">
+      <aside className="hidden lg:flex relative flex-col justify-between bg-[hsl(347_12%_12%)] text-white p-14 xl:p-16">
 
         <p className="text-sm text-white/60">90 viviendas · Una sola plataforma</p>
 

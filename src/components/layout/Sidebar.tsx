@@ -183,7 +183,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <Link to={isAdmin ? '/admin' : '/dashboard'} className="flex items-center gap-3 min-w-0">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0"
-              style={{ backgroundColor: settings.logo_url ? 'transparent' : settings.primary_color || '#0071e3' }}
+              style={{ backgroundColor: settings.logo_url ? 'transparent' : settings.primary_color || '#9b272d' }}
             >
               {settings.logo_url ? (
                 <img src={settings.logo_url} alt="" className="w-full h-full object-contain" />

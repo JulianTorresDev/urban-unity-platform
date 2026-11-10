@@ -73,7 +73,7 @@ const KushkiCheckout = ({ amount, description, paymentId, onSuccess }: KushkiChe
     <Button 
       onClick={handlePayment} 
       disabled={loading} 
-      className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg gap-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] active:scale-95"
+      className="w-full h-12 rounded-xl bg-action hover:bg-action/90 text-action-foreground font-semibold shadow-lg gap-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] active:scale-95"
     >
       {loading ? (
         <Loader2 className="w-5 h-5 animate-spin" />

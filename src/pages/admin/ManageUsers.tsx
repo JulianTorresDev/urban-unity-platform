@@ -212,9 +212,9 @@ const ManageUsers = () => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'super_admin':
-        return <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-600 border border-purple-500/30">Superadministrador</span>;
+        return <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-action/10 text-foreground border border-action/25">Superadministrador</span>;
       case 'admin':
-        return <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-600 border border-blue-500/30">Administrador</span>;
+        return <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/25">Administrador</span>;
       default:
         return <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-muted text-foreground border border-border">Residente</span>;
     }
@@ -278,13 +278,13 @@ const ManageUsers = () => {
               <div 
                 key={user.id}
                 className={`p-6 rounded-2xl border bg-card transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-xs space-y-5 ${
-                  user.status === 'blocked' ? 'border-rose-400 bg-rose-500/[0.02]' : 'border-border/80 hover:border-primary/40'
+                  user.status === 'blocked' ? 'border-destructive/40 bg-destructive/[0.02]' : 'border-border/80 hover:border-primary/40'
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-semibold ${
-                      user.status === 'active' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-rose-500/10 text-rose-600 border border-rose-500/30'
+                      user.status === 'active' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-destructive/10 text-destructive border border-destructive/30'
                     }`}>
                       <UserCircle className="w-7 h-7" />
                     </div>
@@ -333,8 +333,8 @@ const ManageUsers = () => {
                         disabled={updatingId === user.id}
                         className={`h-10 px-4 rounded-xl border font-semibold text-xs gap-1.5 ${
                           user.status === 'active'
-                            ? 'border-rose-300 text-rose-600 hover:bg-rose-500/10'
-                            : 'border-emerald-400 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
+                            ? 'border-destructive/40 text-destructive hover:bg-destructive/10'
+                            : 'border-success/40 bg-success/10 text-success hover:bg-success/20'
                         }`}
                       >
                         {updatingId === user.id ? (
@@ -511,8 +511,8 @@ const ManageUsers = () => {
                   </div>
                   <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-semibold ${
                     selectedUserQR.status === 'active' 
-                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700' 
-                      : 'border-rose-500/30 bg-rose-500/10 text-rose-600'
+                      ? 'border-success/30 bg-success/10 text-success' 
+                      : 'border-destructive/30 bg-destructive/10 text-destructive'
                   }`}>
                     {selectedUserQR.status === 'active' ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
                     <span>{selectedUserQR.status === 'active' ? 'Acceso autorizado' : 'Acceso suspendido'}</span>

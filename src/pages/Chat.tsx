@@ -234,7 +234,7 @@ const Chat = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-semibold text-foreground">Chat de vecinos</h1>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-success" />
               </div>
               <p className="text-xs text-muted-foreground font-medium">
                 Avisos y conversación entre vecinos, con respeto.
@@ -301,7 +301,7 @@ const Chat = () => {
                             <div
                               className={`p-4 rounded-2xl text-sm font-semibold leading-relaxed shadow-xs ${
                                 isOwn
-                                  ? 'bg-primary text-primary-foreground rounded-br-xs'
+                                  ? 'bg-action text-action-foreground rounded-br-xs'
                                   : 'bg-background text-foreground border border-border/80 rounded-bl-xs'
                               } ${message.isOptimistic ? 'opacity-70' : ''}`}
                             >
@@ -321,7 +321,7 @@ const Chat = () => {
                               )}
 
                               <div className={`text-xs font-semibold mt-1.5 flex justify-end ${
-                                isOwn ? 'text-primary-foreground/75' : 'text-muted-foreground'
+                                isOwn ? 'text-action-foreground/75' : 'text-muted-foreground'
                               }`}>
                                 {format(new Date(message.created_at), 'hh:mm a')}
                               </div>
@@ -349,7 +349,7 @@ const Chat = () => {
                 <button 
                   type="button"
                   onClick={removeSelectedImage}
-                  className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 shadow-md"
+                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md"
                   title="Quitar imagen"
                 >
                   <X className="w-3.5 h-3.5" />

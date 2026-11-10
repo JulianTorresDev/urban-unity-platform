@@ -8,7 +8,7 @@
 
 -- Marca del conjunto
 INSERT INTO public.system_settings (company_name, primary_color, secondary_color)
-SELECT 'Gestor Residencial — Gissel''s 2', '#1168bd', '#1e293b'
+SELECT 'Gestor Residencial — Gissel''s 2', '#9b272d', '#42393b'
 WHERE NOT EXISTS (SELECT 1 FROM public.system_settings);
 
 -- Tipos de departamento y su alícuota mensual

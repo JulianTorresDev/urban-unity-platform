@@ -195,13 +195,13 @@ const Dues = () => {
         {!loading && (
           <motion.div variants={itemVariants}>
             {priorityDue && priorityDue.status !== 'paid' ? (
-              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/40 p-6 sm:p-8 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="rounded-2xl bg-warning/10 border border-warning/40 p-6 sm:p-8 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-warning/10 rounded-full blur-2xl pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/30">
+                      <span className="text-xs font-semibold text-warning bg-warning/20 px-3 py-1 rounded-full border border-warning/30">
                         {priorityDue.receipt_url ? 'Comprobante en revisión' : 'Cuota pendiente de pago'}
                       </span>
                       <span className="text-xs font-medium text-muted-foreground">
@@ -225,7 +225,7 @@ const Dues = () => {
                     </p>
 
                     {priorityDue.rejection_reason && (
-                      <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs font-semibold text-rose-700 dark:text-rose-400 mt-2">
+                      <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/30 text-xs font-semibold text-destructive mt-2">
                         Motivo de observación anterior: {priorityDue.rejection_reason}
                       </div>
                     )}
@@ -269,7 +269,7 @@ const Dues = () => {
                           size="lg"
                           disabled={isUploading && uploadingDueId === priorityDue.id}
                           onClick={() => handleSelectFile(priorityDue.id)}
-                          className="w-full lg:w-80 h-16 rounded-2xl font-semibold text-lg gap-3 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                          className="w-full lg:w-80 h-16 rounded-2xl font-semibold text-lg gap-3 bg-success hover:bg-success/90 text-success-foreground shadow-xl transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                         >
                           {isUploading && uploadingDueId === priorityDue.id ? (
                             <>
@@ -289,16 +289,16 @@ const Dues = () => {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-6 sm:p-8 shadow-sm">
+              <div className="rounded-2xl bg-success/10 border border-success/30 p-6 sm:p-8 shadow-sm">
                 <div className="flex items-center gap-5">
                   <div className="flex items-center justify-center flex-shrink-0 text-muted-foreground">
                     <CheckCircle2 className="w-9 h-9" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-semibold text-emerald-950 dark:text-emerald-300 font-display">
+                    <h2 className="text-2xl font-semibold text-success font-display">
                       Estás al día
                     </h2>
-                    <p className="text-emerald-800/80 dark:text-emerald-400/80 text-base font-semibold mt-0.5">
+                    <p className="text-success/80 text-base font-semibold mt-0.5">
                       No tienes cuotas pendientes ni vencidas con la administración del conjunto.
                     </p>
                   </div>

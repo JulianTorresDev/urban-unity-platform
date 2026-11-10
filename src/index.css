@@ -3,52 +3,68 @@
 @tailwind utilities;
 
 /*
-  Sistema visual
-  - Neutros de baja saturación y un único color de acento (configurable por marca).
-  - Colores de estado calibrados para contraste AA sobre blanco y sobre negro.
-  - Bordes de 1px, radios moderados y sombras difusas: la estructura la da el espacio, no la decoración.
+  Sistema visual "Fachada sobria" (tomado del conjunto Gissel's 2)
+  - Neutros cálidos como el enlucido blanco de la fachada; texto café oscuro como las columnas.
+  - Botones sólidos en café de columna (--action); el rojo carmín de la fachada es el acento
+    de marca (--primary): logo, menú activo, enlaces, selección y barras.
+  - El color de marca es configurable desde Configuración. theme.tsx escribe --brand-light y
+    --brand-dark; el modo oscuro usa su propia variante aclarada para mantener el contraste.
+  - El rojo de error se corre hacia el naranja ladrillo para no confundirse con la marca.
+  - Todos los pares texto/fondo cumplen WCAG AA (4,5:1) en claro y en oscuro.
 */
 @layer base {
   :root {
-    --background: 240 11% 96%;
-    --foreground: 240 3% 11%;
+    --background: 20 14% 96%;
+    --foreground: 350 10% 13%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 3% 11%;
+    --card: 20 30% 99%;
+    --card-foreground: 350 10% 13%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 3% 11%;
+    --popover: 20 30% 99%;
+    --popover-foreground: 350 10% 13%;
 
-    --primary: 211 100% 45%;
+    /* Acento de marca: rojo carmín de la fachada */
+    --primary: var(--brand-light, 357 60% 38%);
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 6% 93%;
-    --secondary-foreground: 240 3% 11%;
+    /* Botones sólidos: café de las columnas */
+    --action: 347 9% 22%;
+    --action-foreground: 0 0% 100%;
 
-    --muted: 240 6% 95%;
-    --muted-foreground: 240 2% 43%;
+    --secondary: 15 14% 93%;
+    --secondary-foreground: 350 10% 13%;
 
-    --accent: 240 6% 94%;
-    --accent-foreground: 240 3% 11%;
+    --muted: 15 14% 94%;
+    --muted-foreground: 350 5% 40%;
 
-    --destructive: 357 78% 45%;
+    --accent: 15 14% 93%;
+    --accent-foreground: 350 10% 13%;
+
+    --destructive: 10 85% 40%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 137 58% 32%;
+    --success: 140 52% 30%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 28 100% 38%;
+    --warning: 34 95% 30%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 240 6% 89%;
-    --input: 240 6% 86%;
-    --ring: 211 100% 45%;
+    --border: 15 12% 87%;
+    --input: 15 10% 83%;
+    --ring: var(--brand-light, 357 60% 38%);
+
+    /* Gráficos: carmín, café de columna, verde de persiana, amarillo de bordillo, gris */
+    --chart-1: var(--brand-light, 357 60% 38%);
+    --chart-2: 347 9% 32%;
+    --chart-3: 196 15% 40%;
+    --chart-4: 38 55% 48%;
+    --chart-5: 350 5% 62%;
 
     --radius: 0.75rem;
 
     /* Elevación con sombras en capas en lugar de bordes */
-    --shadow-border: 0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06), 0 2px 4px 0 rgb(0 0 0 / 0.04);
-    --shadow-border-hover: 0 0 0 1px rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.06);
+    --shadow-border: 0 0 0 1px rgb(60 30 30 / 0.07), 0 1px 2px -1px rgb(60 30 30 / 0.06), 0 2px 4px 0 rgb(60 30 30 / 0.04);
+    --shadow-border-hover: 0 0 0 1px rgb(60 30 30 / 0.1), 0 1px 2px -1px rgb(60 30 30 / 0.08), 0 2px 4px 0 rgb(60 30 30 / 0.06);
 
     /* Movimiento */
     --ease-out: cubic-bezier(0.2, 0, 0, 1);
@@ -57,62 +73,71 @@
     --duration-base: 200ms;
     --duration-slow: 300ms;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 3% 11%;
-    --sidebar-primary: 211 100% 45%;
+    --sidebar-background: 20 25% 98%;
+    --sidebar-foreground: 350 10% 13%;
+    --sidebar-primary: var(--brand-light, 357 60% 38%);
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 6% 95%;
-    --sidebar-accent-foreground: 240 3% 11%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 211 100% 45%;
+    --sidebar-accent: 15 14% 94%;
+    --sidebar-accent-foreground: 350 10% 13%;
+    --sidebar-border: 15 12% 88%;
+    --sidebar-ring: var(--brand-light, 357 60% 38%);
   }
 
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 96%;
+    --background: 350 8% 7%;
+    --foreground: 20 15% 94%;
 
-    --card: 240 3% 11%;
-    --card-foreground: 0 0% 96%;
+    --card: 350 6% 11%;
+    --card-foreground: 20 15% 94%;
 
-    --popover: 240 3% 13%;
-    --popover-foreground: 0 0% 96%;
+    --popover: 350 6% 13%;
+    --popover-foreground: 20 15% 94%;
 
-    --primary: 211 100% 52%;
-    --primary-foreground: 0 0% 100%;
+    --primary: var(--brand-dark, 357 60% 66%);
+    --primary-foreground: 350 8% 7%;
 
-    --secondary: 240 3% 17%;
-    --secondary-foreground: 0 0% 96%;
+    --action: 20 15% 90%;
+    --action-foreground: 350 8% 9%;
 
-    --muted: 240 3% 15%;
-    --muted-foreground: 240 3% 62%;
+    --secondary: 350 5% 17%;
+    --secondary-foreground: 20 15% 94%;
 
-    --accent: 240 3% 17%;
-    --accent-foreground: 0 0% 96%;
+    --muted: 350 5% 15%;
+    --muted-foreground: 350 5% 64%;
 
-    --destructive: 3 100% 61%;
-    --destructive-foreground: 0 0% 100%;
+    --accent: 350 5% 17%;
+    --accent-foreground: 20 15% 94%;
 
-    --success: 135 59% 49%;
-    --success-foreground: 0 0% 0%;
+    --destructive: 12 90% 62%;
+    --destructive-foreground: 350 8% 7%;
 
-    --warning: 35 100% 52%;
-    --warning-foreground: 0 0% 0%;
+    --success: 140 45% 52%;
+    --success-foreground: 350 8% 7%;
 
-    --border: 240 3% 20%;
-    --input: 240 3% 24%;
-    --ring: 211 100% 52%;
+    --warning: 38 90% 58%;
+    --warning-foreground: 350 8% 7%;
 
-    --shadow-border: 0 0 0 1px rgb(255 255 255 / 0.08);
-    --shadow-border-hover: 0 0 0 1px rgb(255 255 255 / 0.13);
+    --border: 350 5% 19%;
+    --input: 350 5% 23%;
+    --ring: var(--brand-dark, 357 60% 66%);
 
-    --sidebar-background: 240 3% 7%;
-    --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 211 100% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3% 15%;
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 240 3% 16%;
-    --sidebar-ring: 211 100% 52%;
+    --chart-1: var(--brand-dark, 357 60% 66%);
+    --chart-2: 347 8% 62%;
+    --chart-3: 196 18% 60%;
+    --chart-4: 38 60% 60%;
+    --chart-5: 350 5% 46%;
+
+    --shadow-border: 0 0 0 1px rgb(255 245 240 / 0.08);
+    --shadow-border-hover: 0 0 0 1px rgb(255 245 240 / 0.13);
+
+    --sidebar-background: 350 7% 9%;
+    --sidebar-foreground: 20 15% 94%;
+    --sidebar-primary: var(--brand-dark, 357 60% 66%);
+    --sidebar-primary-foreground: 350 8% 7%;
+    --sidebar-accent: 350 5% 15%;
+    --sidebar-accent-foreground: 20 15% 94%;
+    --sidebar-border: 350 5% 16%;
+    --sidebar-ring: var(--brand-dark, 357 60% 66%);
   }
 }
 

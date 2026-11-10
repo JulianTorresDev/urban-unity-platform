@@ -63,9 +63,9 @@ interface Reservation {
 }
 
 const resourceIcons: Record<string, { icon: LucideIcon; color: string; bg: string; border: string; label?: string }> = {
-  'Zonas Verdes': { icon: TreesIcon, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  'Zonas Verdes': { icon: TreesIcon, color: 'text-success', bg: 'bg-success/10', border: 'border-success/30' },
   'Salón Social': { icon: Building, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
-  'Parqueadero Visitantes': { icon: Car, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+  'Parqueadero Visitantes': { icon: Car, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30' },
 };
 
 const Reservations = () => {
@@ -340,13 +340,13 @@ const Reservations = () => {
                       <motion.div 
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex items-center gap-3"
+                        className="p-4 rounded-xl bg-success/10 border border-success/40 flex items-center gap-3"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center text-white flex-shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-success flex items-center justify-center text-success-foreground flex-shrink-0">
                           <CheckCircle className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                          <p className="text-xs font-semibold text-success">
                             Horario seleccionado
                           </p>
                           <p className="text-sm font-semibold text-foreground">
@@ -543,7 +543,7 @@ const Reservations = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-10 px-4 rounded-xl border border-rose-300 dark:border-rose-900/50 text-rose-600 hover:bg-rose-500/10 font-semibold text-xs gap-1.5"
+                          className="h-10 px-4 rounded-xl border border-destructive/40 text-destructive hover:bg-destructive/10 font-semibold text-xs gap-1.5"
                           onClick={() => handleCancel(reservation.id)}
                           title="Cancelar reserva"
                         >
@@ -642,7 +642,7 @@ const Reservations = () => {
               <div className="p-4">
                 {allReservations.length === 0 ? (
                   <div className="py-8 text-center text-muted-foreground">
-                    <CheckCircle className="w-6 h-6 mx-auto mb-2 text-emerald-500 opacity-80" />
+                    <CheckCircle className="w-6 h-6 mx-auto mb-2 text-success opacity-80" />
                     <p className="text-xs font-semibold text-foreground">Todo despejado hoy</p>
                     <p className="text-xs mt-0.5 font-medium">Las áreas comunes están libres para solicitud.</p>
                   </div>

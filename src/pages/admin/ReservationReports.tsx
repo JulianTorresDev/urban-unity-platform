@@ -20,7 +20,7 @@ interface ReservationData {
   resources?: { name: string } | null;
 }
 
-const COLORS = ['hsl(var(--primary))', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 const ReservationReports = () => {
   const { isAdmin } = useAuth();
@@ -85,9 +85,9 @@ const ReservationReports = () => {
 
   const statusData = useMemo(() => {
     return [
-      { name: 'Confirmadas', value: stats.confirmed, color: '#10b981' },
-      { name: 'En revisión', value: stats.pending, color: '#f59e0b' },
-      { name: 'Canceladas o rechazadas', value: stats.cancelled, color: '#ef4444' },
+      { name: 'Confirmadas', value: stats.confirmed, color: 'hsl(var(--success))' },
+      { name: 'En revisión', value: stats.pending, color: 'hsl(var(--warning))' },
+      { name: 'Canceladas o rechazadas', value: stats.cancelled, color: 'hsl(var(--destructive))' },
     ].filter(d => d.value > 0);
   }, [stats]);
 
@@ -169,10 +169,10 @@ const ReservationReports = () => {
                 <p className="text-xs text-muted-foreground font-medium">En el período seleccionado</p>
               </div>
 
-              <div className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 space-y-2">
-                <p className="text-xs font-semibold text-emerald-700">Autorizadas</p>
-                <p className="text-3xl font-semibold text-emerald-600">{stats.confirmed}</p>
-                <p className="text-xs text-emerald-700/80 font-semibold">{stats.total > 0 ? `${Math.round((stats.confirmed / stats.total) * 100)}% de aprobación` : '0%'}</p>
+              <div className="p-5 rounded-2xl border border-success/30 bg-success/5 space-y-2">
+                <p className="text-xs font-semibold text-success">Autorizadas</p>
+                <p className="text-3xl font-semibold text-success">{stats.confirmed}</p>
+                <p className="text-xs text-success/80 font-semibold">{stats.total > 0 ? `${Math.round((stats.confirmed / stats.total) * 100)}% de aprobación` : '0%'}</p>
               </div>
 
               <div className="p-5 rounded-2xl border border-primary/30 bg-primary/5 space-y-2">
@@ -181,10 +181,10 @@ const ReservationReports = () => {
                 <p className="text-xs text-primary font-semibold">Fondos para el conjunto</p>
               </div>
 
-              <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-2">
-                <p className="text-xs font-semibold text-amber-700">Por aprobar</p>
-                <p className="text-3xl font-semibold text-amber-600">{stats.pending}</p>
-                <p className="text-xs text-amber-700/80 font-semibold">Pendientes en mesa</p>
+              <div className="p-5 rounded-2xl border border-warning/30 bg-warning/5 space-y-2">
+                <p className="text-xs font-semibold text-warning">Por aprobar</p>
+                <p className="text-3xl font-semibold text-warning">{stats.pending}</p>
+                <p className="text-xs text-warning/80 font-semibold">Pendientes en mesa</p>
               </div>
             </div>
 
@@ -280,7 +280,7 @@ const ReservationReports = () => {
                       <tr key={r.name} className="hover:bg-muted/10 transition-colors">
                         <td className="py-3.5 px-6 font-semibold text-foreground">{r.name}</td>
                         <td className="py-3.5 px-6 text-center font-semibold text-muted-foreground">{r.count}</td>
-                        <td className="py-3.5 px-6 text-center font-semibold text-emerald-600">
+                        <td className="py-3.5 px-6 text-center font-semibold text-success">
                           {reservations.filter(res => res.resources?.name === r.name && res.status === 'confirmed').length}
                         </td>
                         <td className="py-3.5 px-6 text-right font-semibold text-foreground">{formatPrice(r.revenue)}</td>
@@ -289,7 +289,7 @@ const ReservationReports = () => {
                     <tr className="bg-muted/30 font-semibold">
                       <td className="py-4 px-6 text-foreground">Total</td>
                       <td className="py-4 px-6 text-center text-foreground">{stats.total}</td>
-                      <td className="py-4 px-6 text-center text-emerald-600">{stats.confirmed}</td>
+                      <td className="py-4 px-6 text-center text-success">{stats.confirmed}</td>
                       <td className="py-4 px-6 text-right text-primary text-base">{formatPrice(stats.totalRevenue)}</td>
                     </tr>
                   </tbody>
